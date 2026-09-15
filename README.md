@@ -121,7 +121,8 @@ flowchart LR
 │   ├── firestore.rules          per-user security rules
 │   └── firebase.json, .firebaserc   Firebase project wiring
 ├── docs/ARCHITECTURE.md         design decisions, full API contract, results
-└── newbackend/                  legacy v1 Flask service (superseded, safe to delete)
+├── bootstrap.py                 one-command setup for any OS (section 7)
+└── setup.sh, setup.cmd, setup.ps1   wrappers that find Python and run bootstrap.py
 ```
 
 ---
@@ -509,6 +510,53 @@ no player was detected in that frame. The full schema is in
 ---
 
 ## 7. Getting started
+
+### Quick start: one command
+
+Install **Python 3.11 or 3.12** and **Flutter 3.47.3+**, plus Android Studio for an
+emulator. Then clone and run the setup script for your OS:
+
+```bash
+git clone git@github.com:henrychen4736/CAC24.git
+cd CAC24
+
+sh setup.sh --run          # macOS / Linux
+setup.cmd --run            # Windows (or double-click setup.cmd for setup only)
+python bootstrap.py --run  # any OS, if you'd rather call Python directly
+```
+
+The script ([`bootstrap.py`](bootstrap.py)) does everything in section 7.2–7.4 for you:
+
+1. **Checks your tools.** It stops with exact instructions if Python or Flutter is
+   missing or too old, before changing anything.
+2. **Sets up the backend.** It creates `backend/.venv`, installs the `tennis_ai`
+   package, and downloads the MediaPipe pose model. Re-running also repairs the
+   environment if you move or rename the project folder.
+3. **Installs the trained model** if you pass `--models-from`, trains it with
+   `--train`, or tells you the server will use the rule-based fallback.
+4. **Installs the app's Flutter packages.**
+5. **With `--run`:**
+   - starts the server and waits until it's healthy;
+   - picks a connected phone, or cold-boots your Android emulator if nothing is connected;
+   - launches the app. On a physical phone it points the app at your computer's LAN address automatically.
+
+   Quitting the app (`q`) also stops the server.
+
+It's safe to re-run at any time. Other useful options:
+
+| Command | What it does |
+|---|---|
+| `python bootstrap.py` | Set up only, then print how to start things |
+| `python bootstrap.py --check` | Only report which tools are installed |
+| `python bootstrap.py --test` | Set up, then run backend lint + tests and `flutter analyze` + tests |
+| `python bootstrap.py --models-from models.zip` | Install trained model files from a folder, `.zip`, or URL |
+| `python bootstrap.py --train` | Train the stroke model and calibrate ranges on THETIS (~4 GB, 1–2 h) |
+| `python bootstrap.py --skip-frontend` | Server only; no Flutter needed |
+| `python bootstrap.py --run --device <id>` | Launch on a specific device (`flutter devices` lists them) |
+| `python bootstrap.py --flutter <path>` / `--python <path>` | Use a specific Flutter SDK or Python |
+| `python bootstrap.py --deploy-rules` | Deploy the Firestore rules (needs Node.js + `npx firebase-tools login`) |
+
+The manual steps below do the same thing, one piece at a time.
 
 ### Prerequisites
 

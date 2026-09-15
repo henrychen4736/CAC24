@@ -6,9 +6,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# Datasets, extracted features, runtime uploads
+# Datasets, extracted features, runtime uploads, server log from bootstrap.py --run
 data/
 uploads/
+server.log
 
 # Downloaded / trained model artifacts (see README for how to fetch or train them)
 models/*
