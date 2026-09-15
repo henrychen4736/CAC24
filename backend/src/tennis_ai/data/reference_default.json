@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "source": "default",
+  "note": "Coaching-heuristic ranges used until `tennis-ai calibrate` builds data-driven ranges from expert clips. null bound = open-ended; a null metric entry = informational only (not rated).",
+  "families": {
+    "forehand": {
+      "shoulder_rotation": {"good": [60, null], "ok": [40, null]},
+      "hip_shoulder_separation": {"good": [15, 60], "ok": [5, 80]},
+      "knee_flexion": {"good": [25, 75], "ok": [15, 95]},
+      "contact_in_front": {"good": [0.25, null], "ok": [0.1, null]},
+      "contact_elbow_angle": {"good": [100, null], "ok": [80, null]},
+      "finish_height": {"good": [0.0, null], "ok": [-0.3, null]},
+      "trunk_lean": {"good": [null, 20], "ok": [null, 32]},
+      "stance_width": {"good": [0.8, 2.2], "ok": [0.55, 2.8]},
+      "head_stability": {"good": [null, 0.25], "ok": [null, 0.45]},
+      "swing_speed": null,
+      "forward_swing_time": null
+    },
+    "backhand": {
+      "shoulder_rotation": {"good": [55, null], "ok": [35, null]},
+      "hip_shoulder_separation": {"good": [15, 65], "ok": [5, 85]},
+      "knee_flexion": {"good": [25, 75], "ok": [15, 95]},
+      "contact_in_front": {"good": [0.25, null], "ok": [0.1, null]},
+      "contact_elbow_angle": {"good": [100, null], "ok": [80, null]},
+      "finish_height": {"good": [0.0, null], "ok": [-0.3, null]},
+      "trunk_lean": {"good": [null, 20], "ok": [null, 32]},
+      "stance_width": {"good": [0.8, 2.2], "ok": [0.55, 2.8]},
+      "head_stability": {"good": [null, 0.25], "ok": [null, 0.45]},
+      "swing_speed": null,
+      "forward_swing_time": null
+    },
+    "overhead": {
+      "knee_flexion": {"good": [30, 80], "ok": [15, 95]},
+      "leg_drive": {"good": [30, null], "ok": [15, null]},
+      "trophy_elbow_height": {"good": [-0.3, 0.3], "ok": [-0.5, 0.5]},
+      "toss_arm_extension": {"good": [150, null], "ok": [125, null]},
+      "shoulder_tilt": {"good": [10, 45], "ok": [0, 60]},
+      "contact_height": {"good": [0.45, null], "ok": [0.25, null]},
+      "contact_elbow_angle": {"good": [150, null], "ok": [130, null]},
+      "finish_across": {"good": [0.0, null], "ok": [-0.3, null]},
+      "swing_speed": null
+    }
+  },
+  "types": {
+    "backhand_1h": {
+      "contact_elbow_angle": {"good": [145, null], "ok": [125, null]}
+    },
+    "forehand_slice": {"finish_height": null, "shoulder_rotation": {"good": [40, null], "ok": [25, null]}},
+    "backhand_slice": {"finish_height": null, "shoulder_rotation": {"good": [40, null], "ok": [25, null]}},
+    "forehand_volley": {"finish_height": null, "shoulder_rotation": null, "hip_shoulder_separation": null, "forward_swing_time": null},
+    "backhand_volley": {"finish_height": null, "shoulder_rotation": null, "hip_shoulder_separation": null, "forward_swing_time": null},
+    "smash": {"toss_arm_extension": null, "knee_flexion": null, "leg_drive": null}
+  }
+}
