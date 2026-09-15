@@ -1,77 +1,65 @@
-import json
+# main.py
 import os
 
-from analyze import tennis_analysis_pipeline
-from flask import Flask, jsonify, make_response, request, send_from_directory
-from flask_cors import CORS
-from werkzeug.utils import secure_filename
+import numpy as np
+from cnn import TennisModelTrainer
 
-app = Flask(__name__)
-CORS(app)
 
-UPLOAD_FOLDER = 'uploads'
-PROCESSED_FOLDER = 'processed'
-ALLOWED_EXTENSIONS = {'mp4'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(PROCESSED_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/')
-def index():
-    return jsonify({"message": "IT WORKS!"})
-
-@app.route('/analyze_shot_forehand', methods=['POST'])
-def analyze_forehand():
-    return process_video('forehand')
-
-@app.route('/analyze_shot_backhand', methods=['POST'])
-def analyze_backhand():
-    return process_video('backhand')
-
-@app.route('/analyze_shot_kickserve', methods=['POST'])
-def analyze_kickserve():
-    return process_video('kickserve')
-
-@app.route('/processed/<filename>')
-def download_file(filename):
-    return send_from_directory(app.config['PROCESSED_FOLDER'], filename, as_attachment=True)
-
-def process_video(shot_type):
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+def create_directories():
+    """Create necessary directories if they don't exist"""
+    directories = [
+        'data/forehand',
+        'data/backhand',
+        'data/serve',
+        'extractions/processed/forehand',
+        'extractions/processed/backhand',
+        'extractions/processed/serve',
+        'processed',
+        'uploads'
+    ]
     
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        
-        processed_filename = f"annotated_{filename}"
-        processed_file_path = os.path.join(app.config['PROCESSED_FOLDER'], processed_filename)
-        
-        try:
-            if shot_type == 'forehand' or shot_type == 'backhand' or shot_type == 'kickserve':
-                annotated_video_path = tennis_analysis_pipeline(video_path=file_path, pro_data_path=f"ML/pro_{shot_type}_angles.csv", output_video_path=processed_file_path)
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            print(f"Created directory: {directory}")
 
-            if annotated_video_path:
-                return send_from_directory(app.config['PROCESSED_FOLDER'], processed_filename, as_attachment=True)
-            else:
-                return jsonify({"error": "Failed to process video"}), 500
-
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+def train_model():
+    """Train the model on processed sequences"""
+    print("\nStep 2: Training model...")
     
-    return jsonify({"error": "Invalid file format, only MP4 allowed"}), 400
+    # Initialize trainer with correct parameters
+    trainer = TennisModelTrainer(
+        processed_dir='extractions/processed',
+        sequence_length=30,
+        num_features=32
+    )
+    
+    # Train the model
+    model, history = trainer.train_model()
+    
+    # Save the model
+    model.save('tennis_model.keras')
+    print("Model saved as tennis_model.keras")
+    
+    return model, history
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+def main():
+    print("Tennis Analysis Pipeline")
+    print("=======================")
+    
+    # Create necessary directories
+    create_directories()
+    
+    # Check if we have existing processed sequences
+    if os.path.exists('extractions/processed/forehand') and \
+       len(os.listdir('extractions/processed/forehand')) > 0:
+        print("\nStep 1: Using existing processed videos")
+    else:
+        print("No processed sequences found. Please run data_processor.py first.")
+        return
+    
+    # Train the model
+    train_model()
+
+if __name__ == "__main__":
+    main()

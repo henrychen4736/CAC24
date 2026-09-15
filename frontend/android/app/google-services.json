@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "796199425258",
+    "project_id": "henry-tennis-q8mkn",
+    "storage_bucket": "henry-tennis-q8mkn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796199425258:android:e8bb40add3e66ce1573393",
+        "android_client_info": {
+          "package_name": "com.henryTennis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5naXxK2TbZASvHOb6CpY5pMr2t8H1IaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,1 +1,17 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - prefer_final_locals
+    - unawaited_futures
+    - avoid_print
+    - use_super_parameters

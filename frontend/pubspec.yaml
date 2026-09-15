@@ -1,27 +1,43 @@
 name: tennis_analyze
-description: "A new Flutter project."
+description: "Henry Tennis — film your swing, get specific coaching feedback."
 publish_to: 'none'
-version: 0.1.0
+version: 2.0.0+2
 
 environment:
-  sdk: '>=3.5.2 <4.0.0'
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  # firebase_core: ^3.6.0
-  # cloud_firestore: ^5.4.4
-  image_picker: ^0.8.9
-  intl: ^0.17.0
-  http: ^0.13.3
-  logging: ^1.3.0
-  video_player: ^2.9.2
-  path_provider: ^2.1.4
-  
+  cloud_firestore: ^6.0.0
+  dio: ^5.9.0
+  firebase_auth: ^6.0.0
+  firebase_core: ^4.0.0
+  flutter_riverpod: ^3.0.0
+  go_router: ^18.0.1
+  image_picker: ^1.2.0
+  intl: ^0.20.2
+  path_provider: ^2.1.5
+  shared_preferences: ^2.5.3
+  video_player: ^2.10.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "tennis_analyze"
+  ios: true
+  image_path: "Images/logo.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "Images/logo.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - Images/logo.png
+    - assets/sample_report.json

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Tennis Analyze</string>
+	<string>Henry Tennis</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,8 +46,17 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to the photo library for analyzing tennis poses.</string>
+	<string>Choose a video of your tennis swing to analyze.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app requires access to the camera for capturing tennis poses.</string>
+	<string>Record a video of your tennis swing to analyze.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Video recordings include sound. Henry Tennis only analyzes the picture.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Connect to an analysis server on your local network during development.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

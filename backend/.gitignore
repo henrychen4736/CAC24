@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Datasets, extracted features, runtime uploads
+data/
+uploads/
+
+# Downloaded / trained model artifacts (see README for how to fetch or train them)
+models/*
+!models/README.md

@@ -1,0 +1,33 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "henry-tennis-q8mkn",
+          "appId": "1:796199425258:android:e8bb40add3e66ce1573393",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "henry-tennis-q8mkn",
+          "appId": "1:796199425258:ios:c9cb86ca702f0497573393",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "henry-tennis-q8mkn",
+          "configurations": {
+            "android": "1:796199425258:android:e8bb40add3e66ce1573393",
+            "ios": "1:796199425258:ios:c9cb86ca702f0497573393"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
