@@ -16,7 +16,7 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir ".[auth]"
 
-# Trained artifacts (stroke_model.onnx/.json, reference_calibrated.json) if present;
+# Calibrated reference ranges (reference_calibrated.json) if present;
 # the pose model is downloaded at build time so containers start fast.
 COPY models ./models
 RUN tennis-ai download-models --variants heavy

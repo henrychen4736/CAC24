@@ -4,9 +4,16 @@ Upload a tennis video, get back detected strokes, biomechanical metrics, and
 coaching cues. Design and API contract: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 
 ```
-video → MediaPipe Pose Landmarker (2D + 3D) → player tracking → smoothing / handedness
-      → stroke detection → stroke type (ONNX model or heuristic) → phases
+video → MediaPipe Pose Landmarker (2D + 3D) → player tracking → smoothing / mirroring
+      → stroke detection (filtered to swings that can be the chosen stroke) → phases
       → metrics → rated against reference ranges → report JSON
+```
+
+The caller chooses the stroke type (`forehand`, `forehand_slice`, `forehand_volley`,
+`backhand_1h`, `backhand_2h`, `backhand_slice`, `backhand_volley`, `serve`, `smash`)
+and the hitting hand (`right` / `left`); every swing found is analyzed as that stroke.
+
+```
 ```
 
 ## Quick start
@@ -25,7 +32,7 @@ tennis-ai serve                   # http://localhost:8000, docs at /docs
 Analyze a file from the command line (prints a summary, optionally writes the full report):
 
 ```bash
-tennis-ai analyze my_forehand.mp4 --handedness right --out report.json
+tennis-ai analyze my_forehand.mp4 --stroke forehand --handedness right --out report.json
 ```
 
 From the app: the Android emulator reaches your machine at `http://10.0.2.2:8000`,
@@ -45,18 +52,17 @@ Environment variables (or a `.env` file in `backend/`):
 | `TENNIS_AUTH_REQUIRED` | `false` | `true` = require a Firebase ID token (`pip install -e ".[auth]"`) |
 | `TENNIS_FIREBASE_PROJECT_ID` | — | e.g. `henry-tennis-q8mkn` |
 | `TENNIS_MODELS_DIR` | `backend/models` | |
-| `TENNIS_EXPOSE_SKILL_SCORE` | `false` | include the model's expert-likeness score; off because it doesn't transfer from THETIS to real footage (see ARCHITECTURE.md §8) |
 
 On a laptop CPU the heavy model runs at roughly 10–15 frames/s, so a 10 s clip
 at 30 fps takes about 25 s. Use `full` for ~2× speed at a small accuracy cost.
 
-## Training on THETIS (or your own data)
+## Calibrating on THETIS (or your own data)
+
+Reference ranges are calibrated from expert strokes (no extra install beyond `.[dev]`):
 
 ```bash
-pip install -e ".[train]"
 tennis-ai fetch-thetis --out data/thetis          # 1,980 clips, ~4 GB
 tennis-ai extract --thetis data/thetis --out data/poses    # pose once, cached (~1 h on 8 cores)
-tennis-ai train --poses data/poses --out models             # minutes on CPU
 tennis-ai calibrate --poses data/poses --view front --shadow --out models/reference_calibrated.json
 ```
 
@@ -71,15 +77,12 @@ Bring your own clips with a CSV manifest instead of `--thetis`
 
 ```bash
 tennis-ai extract --manifest my_clips/manifest.csv --out data/my_poses
+tennis-ai calibrate --poses data/my_poses --out models/reference_calibrated.json
 ```
 
-`train` holds out whole players for validation and prints accuracy, macro-F1,
-per-class recall, and the expert-vs-beginner AUC before refitting on everything
-and exporting `models/stroke_model.onnx`.
-
 **License note:** THETIS is published "freely available for research purposes"
-with no explicit license. Treat models trained on it as research artifacts and
-retrain on data you have rights to before any commercial release.
+with no explicit license. Treat ranges calibrated on it as research artifacts and
+recalibrate on data you have rights to before any commercial release.
 
 ## Tests
 
@@ -88,8 +91,9 @@ pytest
 ```
 
 The tests use synthetic skeletons (no video or model downloads needed): stroke
-detection, handedness mirroring, classification, camera-angle invariance of the
-features and rotation metrics, rating, and the full HTTP job flow.
+detection, handedness mirroring, the stroke plausibility checks, camera-angle
+invariance of the rotation metrics, rating, calibration, and the full HTTP job
+flow (including required `stroke_type` / `handedness` validation).
 
 ## Deploying
 

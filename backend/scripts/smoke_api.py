@@ -1,6 +1,6 @@
 """End-to-end smoke test against a real server: start it, upload a clip, poll, print.
 
-    python scripts/smoke_api.py path/to/clip.mp4 [--hint serve] [--handedness right]
+    python scripts/smoke_api.py path/to/clip.mp4 --stroke serve --handedness right
 
 Uses only the standard library on the client side so it exercises the same
 multipart upload + polling flow the app uses.
@@ -17,6 +17,12 @@ import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
+
+STROKE_TYPES = (
+    "forehand", "forehand_slice", "forehand_volley",
+    "backhand_1h", "backhand_2h", "backhand_slice", "backhand_volley",
+    "serve", "smash",
+)
 
 
 def _request(url: str, data: bytes | None = None, headers: dict | None = None, method: str = "GET"):
@@ -46,8 +52,8 @@ def _multipart(fields: dict[str, str], file_field: str, path: Path) -> tuple[byt
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("video", type=Path)
-    ap.add_argument("--hint", default="auto")
-    ap.add_argument("--handedness", default="auto")
+    ap.add_argument("--stroke", required=True, choices=STROKE_TYPES, help="the stroke filmed")
+    ap.add_argument("--handedness", required=True, choices=["right", "left"])
     ap.add_argument("--port", type=int, default=8765)
     a = ap.parse_args()
     base = f"http://127.0.0.1:{a.port}"
@@ -69,7 +75,7 @@ def main() -> int:
                 time.sleep(0.5)
         print("health:", status, health)
 
-        body, ctype = _multipart({"stroke_hint": a.hint, "handedness": a.handedness}, "file", a.video)
+        body, ctype = _multipart({"stroke_type": a.stroke, "handedness": a.handedness}, "file", a.video)
         status, job = _request(f"{base}/v1/analyses", body, {"Content-Type": ctype}, "POST")
         print("upload:", status, {k: job[k] for k in ("id", "status", "stage", "progress")})
         if status != 202:

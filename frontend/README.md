@@ -30,8 +30,8 @@ Default server URL when `API_BASE_URL` isn't set:
 | iOS simulator | `http://localhost:8000` | |
 | Physical phone | set it | Use your computer's LAN IP, via `--dart-define` or **Profile → Analysis server** in the app (saved on the device) |
 
-**Profile → Test connection** calls `GET /v1/health` and shows which pose model,
-stroke classifier, and reference ranges the server is using.
+**Profile → Test connection** calls `GET /v1/health` and shows which pose model
+and reference ranges the server is using.
 
 ### Plain HTTP during development
 

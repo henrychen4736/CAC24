@@ -4,7 +4,7 @@
 What it does, in order:
   1. checks for Python 3.11/3.12 and Flutter >= 3.47.3 (plus optional tools)
   2. backend: creates backend/.venv, installs the tennis_ai package, downloads the pose model
-  3. trained stroke model: installs it (--models-from) or trains it (--train)
+  3. calibrated reference ranges: installs them (--models-from) or builds them (--calibrate)
   4. app: flutter pub get
   5. optional: runs the tests (--test), deploys Firestore rules (--deploy-rules),
      starts the server and launches the app on a phone or emulator (--run)
@@ -47,7 +47,7 @@ IS_MAC = sys.platform == "darwin"
 SUPPORTED_PYTHONS = ((3, 12), (3, 11))  # MediaPipe has no wheels for newer versions yet
 MIN_FLUTTER = (3, 47, 3)
 API_PORT = 8000
-MODEL_FILES = ("stroke_model.onnx", "stroke_model.json", "reference_calibrated.json")
+MODEL_FILES = ("reference_calibrated.json",)
 FIREBASE_PROJECT = "henry-tennis-q8mkn"
 
 # ---------------------------------------------------------------------------- output
@@ -278,7 +278,7 @@ def venv_python() -> Path:
     return VENV / ("Scripts/python.exe" if IS_WIN else "bin/python")
 
 
-def setup_backend(python: str, train: bool) -> Path:
+def setup_backend(python: str) -> Path:
     step("Backend: Python environment (backend/.venv)")
     vpy = venv_python()
     if vpy.exists():
@@ -292,10 +292,9 @@ def setup_backend(python: str, train: bool) -> Path:
         run([python, "-m", "venv", VENV])
 
     run([vpy, "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
-    extras = "dev,train" if train else "dev"
     info("installing the tennis_ai package and its dependencies (a few minutes the first time)")
     # re-running this also repairs the environment after the project folder is moved or renamed
-    run([vpy, "-m", "pip", "install", "--quiet", "-e", f".[{extras}]"], cwd=BACKEND)
+    run([vpy, "-m", "pip", "install", "--quiet", "-e", ".[dev]"], cwd=BACKEND)
     ok("backend installed")
 
     step("Backend: MediaPipe pose model")
@@ -327,32 +326,32 @@ def install_models_from(source: str) -> None:
                     shutil.copy2(src / name, MODELS / name)
         else:
             raise SetupError(f"--models-from must be a folder, a .zip file, or a URL to a .zip: {source}")
-    missing = [n for n in MODEL_FILES[:2] if not (MODELS / n).exists()]
+    missing = [n for n in MODEL_FILES if not (MODELS / n).exists()]
     if missing:
         raise SetupError(f"{source} doesn't contain {', '.join(missing)}")
 
 
 def ensure_models(vpy: Path, args) -> None:
-    step("Backend: trained stroke model and calibrated ranges")
+    step("Backend: calibrated reference ranges")
     if args.models_from:
         install_models_from(args.models_from)
         ok(f"installed from {args.models_from}")
-    elif args.train:
+    elif args.calibrate:
         cli = [vpy, "-m", "tennis_ai.cli"]
-        info("training on THETIS: ~4 GB download, then 1-2 hours of CPU time.")
+        info("calibrating on THETIS: ~4 GB download, then about 1.5 hours of CPU time.")
         info("Pose extraction is the slow part; if interrupted, re-running resumes where it stopped.")
-        run(cli + ["fetch-thetis", "--out", "data/thetis"], cwd=BACKEND)
+        if not (BACKEND / "data" / "thetis" / "manifest.csv").exists():
+            run(cli + ["fetch-thetis", "--out", "data/thetis"], cwd=BACKEND)
         run(cli + ["extract", "--thetis", "data/thetis", "--out", "data/poses"], cwd=BACKEND)
-        run(cli + ["train", "--poses", "data/poses", "--out", "models"], cwd=BACKEND)
         run(cli + ["calibrate", "--poses", "data/poses", "--view", "front", "--shadow",
                    "--out", "models/reference_calibrated.json"], cwd=BACKEND)
 
     if all((MODELS / n).exists() for n in MODEL_FILES):
-        ok("found stroke_model.onnx and reference_calibrated.json; the server will use them")
+        ok("found reference_calibrated.json; the server will use the calibrated ranges")
     else:
-        warn("not found, so the server will use the rule-based stroke classifier and coaching-default ranges")
-        info("Everything works without them. For the trained model, re-run with")
-        info("--models-from <folder | .zip | URL> or --train (see README section 9).")
+        warn("not found, so the server will use coaching-default ranges")
+        info("Everything works without it. For expert-calibrated ranges, re-run with")
+        info("--models-from <folder | .zip | URL> or --calibrate (see README section 9).")
 
 
 # ---------------------------------------------------------------------------- app
@@ -411,7 +410,7 @@ def start_server(vpy: Path) -> subprocess.Popen | None:
     while time.time() < deadline:
         status = health()
         if status:
-            ok(f"http://localhost:{API_PORT}  (classifier: {status.get('classifier')}, "
+            ok(f"http://localhost:{API_PORT}  (pose: {status.get('pose_model')}, "
                f"ranges: {status.get('reference')}, log: backend/server.log)")
             return proc
         if proc.poll() is not None:
@@ -540,14 +539,14 @@ def print_next_steps(args) -> None:
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="bootstrap.py",
-        description="One-command setup for Henry Tennis: backend, trained model, and app.",
+        description="One-command setup for Henry Tennis: backend, calibrated ranges, and app.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""examples:
   python bootstrap.py                              set everything up
   python bootstrap.py --run                        set up, start the server, launch the app
   python bootstrap.py --test                       set up and run both test suites
-  python bootstrap.py --models-from models.zip     install a trained model someone shared
-  python bootstrap.py --train                      train the model yourself (~4 GB, 1-2 h)
+  python bootstrap.py --models-from models.zip     install calibrated ranges someone shared
+  python bootstrap.py --calibrate                  calibrate ranges yourself (~4 GB, ~1.5 h)
   python bootstrap.py --skip-frontend              server only (no Flutter needed)
   python bootstrap.py --run --device emulator-5554 launch on a specific device""",
     )
@@ -555,10 +554,10 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--run", action="store_true",
                    help="after setup, start the server and launch the app (boots an emulator if needed)")
     p.add_argument("--test", action="store_true", help="after setup, run the backend and app test suites")
-    p.add_argument("--train", action="store_true",
-                   help="train the stroke model and calibrate ranges on THETIS (~4 GB download, 1-2 h)")
+    p.add_argument("--calibrate", action="store_true",
+                   help="calibrate reference ranges on THETIS expert clips (~4 GB download, ~1.5 h)")
     p.add_argument("--models-from", metavar="PATH_OR_URL",
-                   help="install trained model files from a folder, a .zip, or a URL to a .zip")
+                   help="install reference_calibrated.json from a folder, a .zip, or a URL to a .zip")
     p.add_argument("--deploy-rules", action="store_true",
                    help="deploy frontend/firestore.rules to Firebase (needs Node.js and a Firebase login)")
     p.add_argument("--device", help="with --run: the flutter device id or name to launch on")
@@ -571,8 +570,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     args = p.parse_args(argv)
     if args.run and (args.skip_backend or args.skip_frontend):
         p.error("--run needs both the backend and the app; drop --skip-backend/--skip-frontend")
-    if args.train and args.models_from:
-        p.error("use either --train or --models-from, not both")
+    if args.calibrate and args.models_from:
+        p.error("use either --calibrate or --models-from, not both")
     return args
 
 
@@ -586,7 +585,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if ready else 1
         vpy = None
         if not args.skip_backend:
-            vpy = setup_backend(tools["python"], train=args.train)
+            vpy = setup_backend(tools["python"])
             ensure_models(vpy, args)
         if not args.skip_frontend:
             setup_frontend(tools["flutter"])
