@@ -34,7 +34,8 @@ For each stroke you get:
 14. [Credits and licenses](#14-credits-and-licenses)
 
 Deeper design notes, the full JSON contract, and evaluation details are in
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The labelling system for building
+a technique model is in [`docs/labeling/LABELING.md`](docs/labeling/LABELING.md).
 
 ---
 
@@ -121,6 +122,7 @@ flowchart LR
 │   ├── firestore.rules          per-user security rules
 │   └── firebase.json, .firebaserc   Firebase project wiring
 ├── docs/ARCHITECTURE.md         design decisions, full API contract, results
+├── docs/labeling/               labelling guide + schema.json for technique labels
 ├── bootstrap.py                 one-command setup for any OS (section 7)
 └── setup.sh, setup.cmd, setup.ps1   wrappers that find Python and run bootstrap.py
 ```

@@ -1,0 +1,2233 @@
+{
+  "version": 1,
+  "views": {
+    "back": "Behind the baseline, roughly centred, camera at 0.5-2 m: the app's target view",
+    "back_corner": "Behind the baseline near a corner, looking diagonally (about 20-50 degrees off the court axis)",
+    "side": "Level with the player, beside the court, looking across it",
+    "front": "Facing the player (from the net or the far side)",
+    "elevated": "Camera above 3 m (stands, broadcast, top-down); judge body checkpoints only when the player is large and clear"
+  },
+  "view_ratings": {
+    "good": "judge it normally",
+    "limited": "judge only when it is obvious; otherwise cant_tell",
+    "no": "always cant_tell"
+  },
+  "special_values": {
+    "cant_tell": "Visible stroke, but this checkpoint cannot be judged from this footage",
+    "not_applicable": "Checkpoint doesn't apply to this particular ball (e.g. no opponent swing for split_step)"
+  },
+  "clip_fields": [
+    {
+      "id": "clip_id",
+      "required": true,
+      "definition": "Unique id"
+    },
+    {
+      "id": "source",
+      "required": true,
+      "definition": "Dataset name (caltennis, tennis_player_actions, own, ...)"
+    },
+    {
+      "id": "license",
+      "required": true,
+      "definition": "Licence of the footage (e.g. CC BY-NC 4.0)"
+    },
+    {
+      "id": "video",
+      "required": true,
+      "definition": "Path or URL"
+    },
+    {
+      "id": "sync_group",
+      "required": false,
+      "definition": "Same value for clips filmed at the same moment by different cameras"
+    },
+    {
+      "id": "fps",
+      "required": true,
+      "definition": ""
+    },
+    {
+      "id": "resolution",
+      "required": true,
+      "definition": "e.g. 1920x1080"
+    },
+    {
+      "id": "camera_view",
+      "required": true,
+      "options": [
+        "back",
+        "back_corner",
+        "side",
+        "front",
+        "elevated"
+      ],
+      "definition": "See the view definitions"
+    },
+    {
+      "id": "camera_height",
+      "required": true,
+      "options": [
+        "low_under_1m",
+        "chest_1_2m",
+        "raised_2_4m",
+        "high_over_4m"
+      ]
+    },
+    {
+      "id": "player_distance",
+      "required": true,
+      "options": [
+        "near_under_6m",
+        "mid_6_12m",
+        "far_over_12m"
+      ]
+    },
+    {
+      "id": "camera_motion",
+      "required": true,
+      "options": [
+        "static",
+        "handheld",
+        "panning_zooming"
+      ]
+    },
+    {
+      "id": "player_id",
+      "required": true,
+      "definition": "Stable id per person across clips (needed for player-level splits)"
+    },
+    {
+      "id": "handedness",
+      "required": true,
+      "options": [
+        "right",
+        "left"
+      ]
+    },
+    {
+      "id": "player_level",
+      "required": false,
+      "options": [
+        "beginner",
+        "intermediate",
+        "advanced",
+        "college",
+        "pro",
+        "unknown"
+      ]
+    },
+    {
+      "id": "surface",
+      "required": false,
+      "options": [
+        "hard",
+        "clay",
+        "grass",
+        "indoor_hard",
+        "carpet",
+        "other"
+      ]
+    },
+    {
+      "id": "lighting",
+      "required": false,
+      "options": [
+        "day",
+        "night_lights",
+        "indoor",
+        "mixed"
+      ]
+    }
+  ],
+  "stroke_fields": [
+    {
+      "id": "stroke_type",
+      "required": true,
+      "options": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley",
+        "serve",
+        "smash",
+        "other"
+      ],
+      "definition": "The stroke actually played (correct the detector's suggestion if needed)."
+    },
+    {
+      "id": "stroke_variant",
+      "required": false,
+      "options": [
+        "none",
+        "return",
+        "approach",
+        "lob",
+        "drop_shot",
+        "half_volley",
+        "swinging_volley",
+        "flat_serve",
+        "slice_serve",
+        "kick_serve",
+        "second_serve",
+        "defensive",
+        "other"
+      ],
+      "definition": "Optional refinement of the stroke type."
+    },
+    {
+      "id": "context",
+      "required": true,
+      "options": [
+        "rally",
+        "feed",
+        "serve_practice",
+        "match_point_play",
+        "shadow"
+      ],
+      "definition": "How the ball arrived; 'shadow' = no ball."
+    },
+    {
+      "id": "usable",
+      "required": true,
+      "options": [
+        "yes",
+        "partial",
+        "no"
+      ],
+      "definition": "yes = whole body visible through the stroke; partial = some joints hidden/cut off or blurred; no = skip."
+    },
+    {
+      "id": "occlusion",
+      "required": false,
+      "options": [
+        "none",
+        "net",
+        "other_player",
+        "fence",
+        "frame_edge",
+        "motion_blur",
+        "self"
+      ],
+      "definition": "Main reason if usable != yes (multi-select)."
+    },
+    {
+      "id": "ball_visible",
+      "required": true,
+      "options": [
+        "yes",
+        "no"
+      ],
+      "definition": "Can you see the ball around contact?"
+    },
+    {
+      "id": "outcome",
+      "required": false,
+      "options": [
+        "in",
+        "out",
+        "net",
+        "unknown"
+      ],
+      "definition": "Where the shot went."
+    },
+    {
+      "id": "direction",
+      "required": false,
+      "options": [
+        "cross",
+        "middle",
+        "down_the_line",
+        "unknown"
+      ],
+      "definition": ""
+    },
+    {
+      "id": "depth",
+      "required": false,
+      "options": [
+        "deep",
+        "mid",
+        "short",
+        "unknown"
+      ],
+      "definition": "Bounce depth on the far side."
+    },
+    {
+      "id": "overall_quality",
+      "required": true,
+      "options": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "definition": "1 = breaks down (major faults); 2 = several clear faults; 3 = functional with one or two faults; 4 = solid, minor issues; 5 = textbook for this player's level of ball."
+    },
+    {
+      "id": "skill_estimate",
+      "required": true,
+      "options": [
+        "beginner",
+        "intermediate",
+        "advanced",
+        "elite"
+      ],
+      "definition": "How good this stroke looks, ignoring who the player is."
+    },
+    {
+      "id": "main_fault",
+      "required": false,
+      "options": "checkpoint id (or 'none')",
+      "definition": "If a coach could fix one thing, which checkpoint? Must be one marked as a fault on this stroke."
+    },
+    {
+      "id": "second_fault",
+      "required": false,
+      "options": "checkpoint id (or 'none')",
+      "definition": "Optional."
+    },
+    {
+      "id": "rater_confidence",
+      "required": true,
+      "options": [
+        1,
+        2,
+        3
+      ],
+      "definition": "1 = guessing, 2 = fairly sure, 3 = certain."
+    },
+    {
+      "id": "notes",
+      "required": false,
+      "options": "free text",
+      "definition": "Anything unusual."
+    }
+  ],
+  "events": {
+    "groundstroke": [
+      {
+        "id": "prep_start",
+        "required": false,
+        "definition": "First frame the shoulders/racket start turning back"
+      },
+      {
+        "id": "bounce",
+        "required": false,
+        "definition": "Ball bounce on the player's side (if visible)"
+      },
+      {
+        "id": "backswing_end",
+        "required": false,
+        "definition": "Racket furthest back, just before the forward swing"
+      },
+      {
+        "id": "contact",
+        "required": true,
+        "definition": "Frame of ball-racket contact (closest frame)"
+      },
+      {
+        "id": "finish",
+        "required": false,
+        "definition": "Racket at the end of the follow-through"
+      }
+    ],
+    "volley": [
+      {
+        "id": "split_step",
+        "required": false,
+        "definition": "Feet land from the split step"
+      },
+      {
+        "id": "contact",
+        "required": true,
+        "definition": "Ball-racket contact"
+      }
+    ],
+    "serve": [
+      {
+        "id": "toss_release",
+        "required": false,
+        "definition": "Ball leaves the tossing hand"
+      },
+      {
+        "id": "trophy",
+        "required": false,
+        "definition": "Tossing arm highest / racket up, knees most bent"
+      },
+      {
+        "id": "racket_low",
+        "required": false,
+        "definition": "Racket at its lowest point behind the back"
+      },
+      {
+        "id": "contact",
+        "required": true,
+        "definition": "Ball-racket contact"
+      },
+      {
+        "id": "landing",
+        "required": false,
+        "definition": "First foot touches down"
+      }
+    ],
+    "smash": [
+      {
+        "id": "racket_low",
+        "required": false,
+        "definition": "Racket at its lowest point behind the back"
+      },
+      {
+        "id": "contact",
+        "required": true,
+        "definition": "Ball-racket contact"
+      },
+      {
+        "id": "prep_start",
+        "required": false,
+        "definition": "Player starts turning sideways"
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "split_step",
+      "name": "Split step",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley",
+        "smash"
+      ],
+      "phase": "preparation",
+      "moment": "as the opponent hits",
+      "question": "Does the player do a small hop / split step as the opponent strikes the ball?",
+      "options": [
+        {
+          "value": "yes",
+          "definition": "Both feet leave or unweight the ground as the opponent hits"
+        },
+        {
+          "value": "late",
+          "definition": "Split step happens clearly after the opponent's contact"
+        },
+        {
+          "value": "none",
+          "definition": "No split step; flat-footed or already running"
+        }
+      ],
+      "fault_values": [
+        "late",
+        "none"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": true,
+      "notes": "Skip (cant_tell) on fed balls where there is no opponent swing."
+    },
+    {
+      "id": "unit_turn_timing",
+      "name": "Early preparation",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "preparation",
+      "moment": "ball bounce on the player's side",
+      "question": "When the ball bounces, have the shoulders and racket already turned back?",
+      "options": [
+        {
+          "value": "early",
+          "definition": "Turn complete before the bounce"
+        },
+        {
+          "value": "on_time",
+          "definition": "Turn finishing around the bounce"
+        },
+        {
+          "value": "late",
+          "definition": "Still turning (or not started) after the bounce; rushed swing"
+        }
+      ],
+      "fault_values": [
+        "late"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": true
+    },
+    {
+      "id": "shoulder_turn",
+      "name": "Shoulder turn",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "preparation",
+      "moment": "end of backswing",
+      "question": "How far have the shoulders turned away from the net at the end of the backswing?",
+      "options": [
+        {
+          "value": "full",
+          "definition": "Shoulder line at least perpendicular to the net (points at the net); back partly turned to the net"
+        },
+        {
+          "value": "partial",
+          "definition": "Roughly halfway (about 45 degrees)"
+        },
+        {
+          "value": "minimal",
+          "definition": "Chest still mostly facing the net; arm-only takeback"
+        }
+      ],
+      "fault_values": [
+        "minimal"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "limited",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "non_hitting_arm",
+      "name": "Non-hitting arm in the turn",
+      "applies_to": [
+        "forehand",
+        "forehand_slice"
+      ],
+      "phase": "preparation",
+      "moment": "end of backswing",
+      "question": "Does the non-hitting arm extend across in front of the body during the turn?",
+      "options": [
+        {
+          "value": "extended",
+          "definition": "Arm reaches across, roughly parallel to the baseline, helping the turn"
+        },
+        {
+          "value": "partial",
+          "definition": "Arm lifts but stays bent close to the body"
+        },
+        {
+          "value": "tucked",
+          "definition": "Arm hangs or stays tucked; does not take part in the turn"
+        }
+      ],
+      "fault_values": [
+        "tucked"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "takeback_size",
+      "name": "Size of takeback",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "preparation",
+      "moment": "end of backswing",
+      "question": "How big is the backswing?",
+      "options": [
+        {
+          "value": "compact",
+          "definition": "Racket goes back to around the back shoulder / side fence line"
+        },
+        {
+          "value": "big",
+          "definition": "Racket goes clearly past the back shoulder"
+        },
+        {
+          "value": "excessive",
+          "definition": "Racket wraps far behind the back; a long, late loop"
+        }
+      ],
+      "fault_values": [
+        "excessive"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "racket_below_ball",
+      "name": "Racket drops below the ball",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h"
+      ],
+      "phase": "preparation",
+      "moment": "start of forward swing",
+      "question": "Just before the forward swing, is the racket head below the height where contact happens?",
+      "options": [
+        {
+          "value": "below",
+          "definition": "Racket head clearly below contact height (sets up low-to-high)"
+        },
+        {
+          "value": "level",
+          "definition": "About level with contact height"
+        },
+        {
+          "value": "above",
+          "definition": "Racket stays above contact height and swings down or flat"
+        }
+      ],
+      "fault_values": [
+        "above"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "knee_load",
+      "name": "Knee bend (loading)",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "preparation",
+      "moment": "end of backswing / just before contact for volleys",
+      "question": "How bent are the legs while loading?",
+      "options": [
+        {
+          "value": "bent",
+          "definition": "Clear knee bend, hips lowered (an athletic 'sit')"
+        },
+        {
+          "value": "slight",
+          "definition": "Small bend"
+        },
+        {
+          "value": "straight",
+          "definition": "Legs nearly straight; standing tall"
+        }
+      ],
+      "fault_values": [
+        "straight"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "stance",
+      "name": "Stance",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "What stance is the player in at contact? (Descriptive; not a fault by itself.)",
+      "options": [
+        {
+          "value": "open",
+          "definition": "Feet roughly parallel to the baseline"
+        },
+        {
+          "value": "semi_open",
+          "definition": "Between open and neutral"
+        },
+        {
+          "value": "neutral",
+          "definition": "Front foot stepped forward; feet roughly along the court"
+        },
+        {
+          "value": "closed",
+          "definition": "Front foot stepped across beyond the back foot"
+        }
+      ],
+      "fault_values": [],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "limited",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false,
+      "notes": "Descriptor: use it to interpret other checkpoints (e.g. rotation is expected to differ by stance)."
+    },
+    {
+      "id": "contact_depth",
+      "name": "Contact in front",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley",
+        "serve",
+        "smash"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Along the direction of the court, where is the ball met relative to the body?",
+      "options": [
+        {
+          "value": "in_front",
+          "definition": "Ahead of the front hip (serve: ahead of the head/body, into the court)"
+        },
+        {
+          "value": "beside",
+          "definition": "Level with the body"
+        },
+        {
+          "value": "late",
+          "definition": "Behind the body (serve/smash: behind the head)"
+        }
+      ],
+      "fault_values": [
+        "late"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false,
+      "notes": "From directly behind or in front this is a depth judgement; mark cant_tell unless it is obvious."
+    },
+    {
+      "id": "spacing",
+      "name": "Spacing from the ball",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Sideways, how far from the body is the ball met?",
+      "options": [
+        {
+          "value": "cramped",
+          "definition": "Ball too close; elbow jammed against the body"
+        },
+        {
+          "value": "good",
+          "definition": "Comfortable arm's-length space"
+        },
+        {
+          "value": "reaching",
+          "definition": "Ball too far; lunging or reaching with a straight, stretched arm"
+        }
+      ],
+      "fault_values": [
+        "cramped",
+        "reaching"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "limited",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "contact_height",
+      "name": "Contact height",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "At what height is the ball met? (Descriptive; the right height depends on the ball.)",
+      "options": [
+        {
+          "value": "below_knee",
+          "definition": "Below the knee"
+        },
+        {
+          "value": "knee_waist",
+          "definition": "Knee to waist"
+        },
+        {
+          "value": "waist_chest",
+          "definition": "Waist to chest (the comfortable zone)"
+        },
+        {
+          "value": "above_shoulder",
+          "definition": "Above the shoulder"
+        }
+      ],
+      "fault_values": [],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "no"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "hitting_arm",
+      "name": "Hitting arm at contact",
+      "applies_to": [
+        "forehand",
+        "backhand_1h"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "How is the hitting arm shaped at contact?",
+      "options": [
+        {
+          "value": "straight",
+          "definition": "Nearly straight"
+        },
+        {
+          "value": "bent",
+          "definition": "Clearly bent at the elbow but with space from the body"
+        },
+        {
+          "value": "jammed",
+          "definition": "Elbow tucked into the body"
+        }
+      ],
+      "fault_values": [
+        "jammed"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "extended",
+      "needs_ball": false,
+      "notes": "For one-handed backhands a straight arm is expected; mark 'bent' as a fault in analysis, not here."
+    },
+    {
+      "id": "two_hands",
+      "name": "Both hands through contact",
+      "applies_to": [
+        "backhand_2h"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Do both hands stay on the racket through contact?",
+      "options": [
+        {
+          "value": "yes",
+          "definition": "Both hands on the grip until after contact"
+        },
+        {
+          "value": "releases_early",
+          "definition": "Top hand comes off before or at contact"
+        }
+      ],
+      "fault_values": [
+        "releases_early"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "body_rotation",
+      "name": "Rotation through contact",
+      "applies_to": [
+        "forehand",
+        "backhand_2h"
+      ],
+      "phase": "contact",
+      "moment": "contact to just after",
+      "question": "Do the hips and shoulders rotate forward through contact?",
+      "options": [
+        {
+          "value": "full",
+          "definition": "Chest turns to face the net by or just after contact"
+        },
+        {
+          "value": "partial",
+          "definition": "Some rotation, stops short"
+        },
+        {
+          "value": "arm_only",
+          "definition": "Body stays still; the arm does the work"
+        }
+      ],
+      "fault_values": [
+        "arm_only"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "limited",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false,
+      "notes": "One-handed backhands and slices use shoulders_stay_sideways instead."
+    },
+    {
+      "id": "shoulders_stay_sideways",
+      "name": "Shoulders stay sideways",
+      "applies_to": [
+        "forehand_slice",
+        "backhand_slice",
+        "backhand_1h"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Do the shoulders stay side-on (not opening up) through contact?",
+      "options": [
+        {
+          "value": "yes",
+          "definition": "Shoulders still roughly perpendicular to the net at contact"
+        },
+        {
+          "value": "opens_early",
+          "definition": "Chest swings open to the net before contact"
+        }
+      ],
+      "fault_values": [
+        "opens_early"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "limited",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "head_still",
+      "name": "Head steady",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley",
+        "serve",
+        "smash"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Does the head stay still and facing the contact zone through contact?",
+      "options": [
+        {
+          "value": "still",
+          "definition": "Head steady; still pointed at the contact zone just after contact"
+        },
+        {
+          "value": "moves",
+          "definition": "Head jerks up or turns to look at the target before or at contact"
+        }
+      ],
+      "fault_values": [
+        "moves"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "balance_contact",
+      "name": "Balance at contact",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley",
+        "serve",
+        "smash"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Is the upper body balanced at contact?",
+      "options": [
+        {
+          "value": "upright",
+          "definition": "Trunk upright or leaning naturally into the shot"
+        },
+        {
+          "value": "leaning_back",
+          "definition": "Falling or leaning away from the ball / backwards"
+        },
+        {
+          "value": "leaning_sideways",
+          "definition": "Toppling sideways"
+        }
+      ],
+      "fault_values": [
+        "leaning_back",
+        "leaning_sideways"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "weight_transfer",
+      "name": "Weight transfer",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Is the body weight moving forward into the ball?",
+      "options": [
+        {
+          "value": "forward",
+          "definition": "Weight moving forward / into the court"
+        },
+        {
+          "value": "neutral",
+          "definition": "Stationary"
+        },
+        {
+          "value": "backward",
+          "definition": "Moving away from the ball or back"
+        }
+      ],
+      "fault_values": [
+        "backward"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "swing_path",
+      "name": "Low-to-high swing",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h"
+      ],
+      "phase": "follow_through",
+      "moment": "contact to finish",
+      "question": "What is the racket path through the ball?",
+      "options": [
+        {
+          "value": "low_to_high",
+          "definition": "Clearly rises through contact"
+        },
+        {
+          "value": "flat",
+          "definition": "Mostly level"
+        },
+        {
+          "value": "high_to_low",
+          "definition": "Comes down through the ball (unintended slice/chop)"
+        }
+      ],
+      "fault_values": [
+        "high_to_low"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "finish_position",
+      "name": "Finish position",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h"
+      ],
+      "phase": "follow_through",
+      "moment": "finish",
+      "question": "Where does the racket finish?",
+      "options": [
+        {
+          "value": "over_shoulder",
+          "definition": "Over the opposite shoulder (two-hander: over the shoulder; one-hander: high, arm extended toward target)"
+        },
+        {
+          "value": "around_body",
+          "definition": "Around the neck/body at shoulder height"
+        },
+        {
+          "value": "low_across",
+          "definition": "Low across the body (windshield-wiper finish)"
+        },
+        {
+          "value": "stops_short",
+          "definition": "Swing stops soon after contact"
+        }
+      ],
+      "fault_values": [
+        "stops_short"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false,
+      "notes": "'low_across' is a legitimate modern variation; only 'stops_short' is a fault."
+    },
+    {
+      "id": "balance_finish",
+      "name": "Balance at finish",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley",
+        "serve",
+        "smash"
+      ],
+      "phase": "follow_through",
+      "moment": "about 0.5 s after contact",
+      "question": "Is the player balanced after the shot?",
+      "options": [
+        {
+          "value": "stable",
+          "definition": "Holds the finish / recovers without stumbling"
+        },
+        {
+          "value": "steps_to_recover",
+          "definition": "Needs an extra step to catch balance"
+        },
+        {
+          "value": "falls_off",
+          "definition": "Clearly off balance"
+        }
+      ],
+      "fault_values": [
+        "falls_off"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "recovery",
+      "name": "Recovery",
+      "applies_to": [
+        "forehand",
+        "backhand_1h",
+        "backhand_2h",
+        "forehand_slice",
+        "backhand_slice",
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "follow_through",
+      "moment": "after the finish",
+      "question": "Does the player recover toward a ready position for the next ball?",
+      "options": [
+        {
+          "value": "recovers",
+          "definition": "Moves back toward the middle / ready position"
+        },
+        {
+          "value": "watches",
+          "definition": "Stays to watch the shot"
+        }
+      ],
+      "fault_values": [
+        "watches"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": true
+    },
+    {
+      "id": "slice_takeback_high",
+      "name": "High takeback (slice)",
+      "applies_to": [
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "preparation",
+      "moment": "end of backswing",
+      "question": "Does the racket start above the height of contact?",
+      "options": [
+        {
+          "value": "above",
+          "definition": "Racket starts clearly above contact height"
+        },
+        {
+          "value": "level",
+          "definition": "Starts about level"
+        },
+        {
+          "value": "below",
+          "definition": "Starts below contact height"
+        }
+      ],
+      "fault_values": [
+        "below"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "slice_path",
+      "name": "Slice swing path",
+      "applies_to": [
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "What is the racket path through the ball?",
+      "options": [
+        {
+          "value": "high_to_low_forward",
+          "definition": "Moves down and forward through the ball"
+        },
+        {
+          "value": "chop",
+          "definition": "Steep downward chop with little forward movement"
+        },
+        {
+          "value": "flat_or_up",
+          "definition": "Level or rising path"
+        }
+      ],
+      "fault_values": [
+        "chop",
+        "flat_or_up"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "slice_face",
+      "name": "Racket face (slice)",
+      "applies_to": [
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Is the racket face open (tilted back) at contact?",
+      "options": [
+        {
+          "value": "open",
+          "definition": "Face tilted back slightly"
+        },
+        {
+          "value": "flat",
+          "definition": "Face vertical"
+        },
+        {
+          "value": "very_open",
+          "definition": "Face tilted far back (floats the ball)"
+        }
+      ],
+      "fault_values": [
+        "very_open"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "limited",
+        "side": "good",
+        "front": "limited",
+        "elevated": "no"
+      },
+      "tier": "extended",
+      "needs_ball": false,
+      "notes": "Needs a clear, close view of the racket; mark cant_tell otherwise."
+    },
+    {
+      "id": "slice_finish",
+      "name": "Slice finish",
+      "applies_to": [
+        "forehand_slice",
+        "backhand_slice"
+      ],
+      "phase": "follow_through",
+      "moment": "finish",
+      "question": "Where does the racket finish?",
+      "options": [
+        {
+          "value": "forward_extended",
+          "definition": "Extends forward toward the target, arm long"
+        },
+        {
+          "value": "wraps",
+          "definition": "Wraps around the body"
+        },
+        {
+          "value": "stops_short",
+          "definition": "Stops right after contact"
+        }
+      ],
+      "fault_values": [
+        "wraps",
+        "stops_short"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "volley_backswing",
+      "name": "Volley backswing",
+      "applies_to": [
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "preparation",
+      "moment": "just before contact",
+      "question": "How big is the backswing?",
+      "options": [
+        {
+          "value": "compact",
+          "definition": "Racket stays in front of the body; little or no backswing"
+        },
+        {
+          "value": "small",
+          "definition": "Small takeback to about the shoulder"
+        },
+        {
+          "value": "big",
+          "definition": "Full swing"
+        }
+      ],
+      "fault_values": [
+        "big"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "volley_step",
+      "name": "Step into the volley",
+      "applies_to": [
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Does the player step forward into the volley with the opposite foot?",
+      "options": [
+        {
+          "value": "opposite_foot",
+          "definition": "Steps forward with the foot opposite the hitting side"
+        },
+        {
+          "value": "same_foot",
+          "definition": "Steps with the same-side foot"
+        },
+        {
+          "value": "no_step",
+          "definition": "No forward step"
+        }
+      ],
+      "fault_values": [
+        "no_step"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "volley_racket_head",
+      "name": "Racket head up",
+      "applies_to": [
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "At contact, is the racket head above the wrist?",
+      "options": [
+        {
+          "value": "above",
+          "definition": "Racket head above the wrist"
+        },
+        {
+          "value": "level",
+          "definition": "About level"
+        },
+        {
+          "value": "below",
+          "definition": "Racket head drooping below the wrist (on a ball above the knee)"
+        }
+      ],
+      "fault_values": [
+        "below"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "no"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "volley_follow",
+      "name": "Volley follow-through",
+      "applies_to": [
+        "forehand_volley",
+        "backhand_volley"
+      ],
+      "phase": "follow_through",
+      "moment": "finish",
+      "question": "How long is the follow-through?",
+      "options": [
+        {
+          "value": "short_punch",
+          "definition": "Short, firm punch toward the target"
+        },
+        {
+          "value": "long_swing",
+          "definition": "Long swinging finish"
+        }
+      ],
+      "fault_values": [
+        "long_swing"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "serve_stance",
+      "name": "Serve stance",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "start",
+      "question": "Which stance? (Descriptive.)",
+      "options": [
+        {
+          "value": "platform",
+          "definition": "Feet stay apart through the motion"
+        },
+        {
+          "value": "pinpoint",
+          "definition": "Back foot slides up next to the front foot"
+        }
+      ],
+      "fault_values": [],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "toss_arm",
+      "name": "Tossing arm",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "toss release",
+      "question": "Is the tossing arm straight as it releases the ball?",
+      "options": [
+        {
+          "value": "straight",
+          "definition": "Arm long and straight, lifting from the shoulder"
+        },
+        {
+          "value": "slightly_bent",
+          "definition": "Some elbow bend"
+        },
+        {
+          "value": "bent",
+          "definition": "Elbow clearly bent; flicked toss"
+        }
+      ],
+      "fault_values": [
+        "bent"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "toss_placement",
+      "name": "Toss placement",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "top of the toss",
+      "question": "Where is the toss relative to the body?",
+      "options": [
+        {
+          "value": "in_front_hitting_side",
+          "definition": "Slightly in front and toward the hitting side"
+        },
+        {
+          "value": "above_head",
+          "definition": "Straight above the head"
+        },
+        {
+          "value": "behind",
+          "definition": "Behind the head"
+        },
+        {
+          "value": "too_far_side",
+          "definition": "Far out to either side"
+        }
+      ],
+      "fault_values": [
+        "behind",
+        "too_far_side"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": true,
+      "notes": "From behind you can judge left/right well but in front/behind poorly; from the side the reverse."
+    },
+    {
+      "id": "toss_height",
+      "name": "Toss height",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "top of the toss",
+      "question": "How high is the toss compared with the reach at contact?",
+      "options": [
+        {
+          "value": "too_low",
+          "definition": "Player has to rush or hit with a bent arm"
+        },
+        {
+          "value": "ok",
+          "definition": "Peaks around or a little above full reach"
+        },
+        {
+          "value": "too_high",
+          "definition": "Ball falls well past the contact point; long wait"
+        }
+      ],
+      "fault_values": [
+        "too_low",
+        "too_high"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "extended",
+      "needs_ball": true
+    },
+    {
+      "id": "trophy_position",
+      "name": "Trophy position",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "trophy",
+      "question": "At the trophy position: hitting elbow about shoulder height, racket up, tossing arm pointing up?",
+      "options": [
+        {
+          "value": "full",
+          "definition": "All three present"
+        },
+        {
+          "value": "partial",
+          "definition": "One element missing (e.g. elbow low or tossing arm already dropped)"
+        },
+        {
+          "value": "missing",
+          "definition": "No recognisable trophy position"
+        }
+      ],
+      "fault_values": [
+        "missing"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "serve_knee_bend",
+      "name": "Knee bend at trophy",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "trophy",
+      "question": "How much do the knees bend in the loading phase?",
+      "options": [
+        {
+          "value": "deep",
+          "definition": "Clear bend"
+        },
+        {
+          "value": "moderate",
+          "definition": "Some bend"
+        },
+        {
+          "value": "none",
+          "definition": "Legs straight"
+        }
+      ],
+      "fault_values": [
+        "none"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "shoulder_tilt",
+      "name": "Shoulder tilt",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "preparation",
+      "moment": "trophy",
+      "question": "Is the tossing shoulder higher than the hitting shoulder at the trophy?",
+      "options": [
+        {
+          "value": "tilted",
+          "definition": "Tossing shoulder clearly higher"
+        },
+        {
+          "value": "slight",
+          "definition": "Slightly higher"
+        },
+        {
+          "value": "level",
+          "definition": "Shoulders level"
+        }
+      ],
+      "fault_values": [
+        "level"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "limited",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "racket_drop",
+      "name": "Racket drop",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "acceleration",
+      "moment": "lowest racket position behind the back",
+      "question": "Does the racket drop down behind the back before swinging up?",
+      "options": [
+        {
+          "value": "full",
+          "definition": "Racket head points toward the ground behind the back"
+        },
+        {
+          "value": "partial",
+          "definition": "Racket drops to about shoulder level"
+        },
+        {
+          "value": "none",
+          "definition": "Racket pushed forward from the trophy ('waiter's tray' / pushing)"
+        }
+      ],
+      "fault_values": [
+        "none"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "limited",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "leg_drive",
+      "name": "Leg drive",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "acceleration",
+      "moment": "trophy to contact",
+      "question": "Do the legs drive up into the ball?",
+      "options": [
+        {
+          "value": "explosive",
+          "definition": "Strong extension; feet leave the ground"
+        },
+        {
+          "value": "some",
+          "definition": "Legs extend but stay grounded"
+        },
+        {
+          "value": "none",
+          "definition": "No push from the legs"
+        }
+      ],
+      "fault_values": [
+        "none"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "contact_reach",
+      "name": "Reach at contact",
+      "applies_to": [
+        "serve",
+        "smash"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Is the ball hit at full reach?",
+      "options": [
+        {
+          "value": "full",
+          "definition": "Hitting arm and body extended up; ball at the highest comfortable point"
+        },
+        {
+          "value": "slightly_low",
+          "definition": "Arm a little bent or body a little crouched"
+        },
+        {
+          "value": "low",
+          "definition": "Clearly below full reach"
+        }
+      ],
+      "fault_values": [
+        "low"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "tossing_arm_tuck",
+      "name": "Tossing arm tuck",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "contact",
+      "moment": "contact",
+      "question": "Does the tossing arm pull down and in toward the body as the racket swings up?",
+      "options": [
+        {
+          "value": "tucks",
+          "definition": "Arm pulls down into the chest/stomach"
+        },
+        {
+          "value": "drops_early",
+          "definition": "Arm falls well before the swing"
+        },
+        {
+          "value": "stays_up",
+          "definition": "Arm stays up or flails out"
+        }
+      ],
+      "fault_values": [
+        "drops_early",
+        "stays_up"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "pronation",
+      "name": "Pronation",
+      "applies_to": [
+        "serve",
+        "smash"
+      ],
+      "phase": "follow_through",
+      "moment": "just after contact",
+      "question": "Does the forearm rotate the racket face outward after contact (thumb turning down)?",
+      "options": [
+        {
+          "value": "yes",
+          "definition": "Clear outward rotation"
+        },
+        {
+          "value": "no",
+          "definition": "Racket face stays facing forward / wrist slaps down"
+        }
+      ],
+      "fault_values": [
+        "no"
+      ],
+      "views": {
+        "back": "limited",
+        "back_corner": "limited",
+        "side": "limited",
+        "front": "limited",
+        "elevated": "no"
+      },
+      "tier": "extended",
+      "needs_ball": false,
+      "notes": "Needs 60 fps and a close view; usually cant_tell."
+    },
+    {
+      "id": "serve_landing",
+      "name": "Landing",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "follow_through",
+      "moment": "landing",
+      "question": "How does the player land?",
+      "options": [
+        {
+          "value": "front_foot_forward",
+          "definition": "Lands on the front foot, moving into the court"
+        },
+        {
+          "value": "both_feet_back",
+          "definition": "Lands on both feet behind or at the baseline"
+        },
+        {
+          "value": "off_balance",
+          "definition": "Stumbles or lands sideways"
+        }
+      ],
+      "fault_values": [
+        "off_balance"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "serve_finish",
+      "name": "Serve follow-through",
+      "applies_to": [
+        "serve",
+        "smash"
+      ],
+      "phase": "follow_through",
+      "moment": "finish",
+      "question": "Where does the racket finish?",
+      "options": [
+        {
+          "value": "across_body",
+          "definition": "Finishes past the body on the non-hitting side"
+        },
+        {
+          "value": "hitting_side",
+          "definition": "Finishes on the hitting side"
+        },
+        {
+          "value": "stops_short",
+          "definition": "Stops in front of the body"
+        }
+      ],
+      "fault_values": [
+        "stops_short"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "serve_rhythm",
+      "name": "Rhythm",
+      "applies_to": [
+        "serve"
+      ],
+      "phase": "acceleration",
+      "moment": "whole motion",
+      "question": "Is the motion continuous?",
+      "options": [
+        {
+          "value": "smooth",
+          "definition": "One continuous motion from toss to contact"
+        },
+        {
+          "value": "pause",
+          "definition": "Clear pause (e.g. at the trophy) that breaks the chain"
+        },
+        {
+          "value": "rushed",
+          "definition": "Hurried; toss and swing out of sync"
+        }
+      ],
+      "fault_values": [
+        "pause",
+        "rushed"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "extended",
+      "needs_ball": false
+    },
+    {
+      "id": "smash_turn",
+      "name": "Sideways turn (smash)",
+      "applies_to": [
+        "smash"
+      ],
+      "phase": "preparation",
+      "moment": "as the lob goes up",
+      "question": "Does the player turn sideways early, hitting shoulder back?",
+      "options": [
+        {
+          "value": "early",
+          "definition": "Turns as soon as the lob is recognised"
+        },
+        {
+          "value": "late",
+          "definition": "Turns late"
+        },
+        {
+          "value": "none",
+          "definition": "Stays facing the net"
+        }
+      ],
+      "fault_values": [
+        "late",
+        "none"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "core",
+      "needs_ball": true
+    },
+    {
+      "id": "smash_pointing_arm",
+      "name": "Pointing arm (smash)",
+      "applies_to": [
+        "smash"
+      ],
+      "phase": "preparation",
+      "moment": "before contact",
+      "question": "Does the non-hitting arm point up at the ball?",
+      "options": [
+        {
+          "value": "yes",
+          "definition": "Arm up, tracking the ball"
+        },
+        {
+          "value": "no",
+          "definition": "Arm down or not tracking"
+        }
+      ],
+      "fault_values": [
+        "no"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "limited"
+      },
+      "tier": "core",
+      "needs_ball": false
+    },
+    {
+      "id": "smash_footwork",
+      "name": "Moving under the ball",
+      "applies_to": [
+        "smash"
+      ],
+      "phase": "preparation",
+      "moment": "before contact",
+      "question": "How does the player move to the ball?",
+      "options": [
+        {
+          "value": "side_steps",
+          "definition": "Side-steps or crossover steps, staying sideways"
+        },
+        {
+          "value": "backpedals",
+          "definition": "Runs backwards facing the net"
+        },
+        {
+          "value": "no_move",
+          "definition": "Does not adjust; reaches for the ball"
+        }
+      ],
+      "fault_values": [
+        "backpedals",
+        "no_move"
+      ],
+      "views": {
+        "back": "good",
+        "back_corner": "good",
+        "side": "good",
+        "front": "good",
+        "elevated": "good"
+      },
+      "tier": "extended",
+      "needs_ball": true
+    }
+  ]
+}
