@@ -1,4 +1,4 @@
-"""The training path end to end on synthetic poses: cache → dataset → train → ONNX → service."""
+"""Dataset tooling end to end on synthetic poses: pose cache → prepared clips → calibration."""
 
 import csv
 
@@ -6,12 +6,7 @@ import numpy as np
 import pytest
 from synthetic import swing_sequence
 
-from tennis_ai.ml.dataset import build_dataset
 from tennis_ai.ml.extract import INDEX_FIELDS, load_sequence, save_sequence
-from tennis_ai.ml.features import NUM_FEATURES, T_OUT
-from tennis_ai.pipeline.classify import STROKE_TYPES, StrokeClassifier
-from tennis_ai.pipeline.preprocess import prepare
-from tennis_ai.pipeline.segment import detect_strokes
 
 KINDS = {"forehand": "forehand", "backhand": "backhand_2h", "serve": "serve"}
 
@@ -40,15 +35,15 @@ def test_pose_cache_roundtrip(tmp_path):
     assert np.allclose(back.kp3d, seq.kp3d) and back.fps == seq.fps and back.model == seq.model
 
 
-def test_build_dataset_and_cache(pose_dir):
-    ds = build_dataset(pose_dir)
-    assert ds.X.shape == (12, T_OUT, NUM_FEATURES)
-    assert set(ds.heuristic) <= set(STROKE_TYPES)
+def test_prepared_clips_pick_the_labelled_stroke(pose_dir):
+    from tennis_ai.ml.dataset import prepared_clips
+
+    clips = list(prepared_clips(pose_dir))
+    assert len(clips) == 12
     # serve clips have a windup; the label must steer the window to the actual hit
-    assert set(ds.heuristic[ds.stroke == "serve"]) == {"serve"}
-    cached = build_dataset(pose_dir)
-    assert np.array_equal(cached.X, ds.X)
-    assert list(cached.file) == list(ds.file)
+    for row, prep, w in clips:
+        if row["stroke"] == "serve":
+            assert round(w.contact / prep.fps, 1) == 2.0
 
 
 def test_calibrate_writes_ranges_the_service_uses(pose_dir, tmp_path):
@@ -75,33 +70,3 @@ def test_calibrate_writes_ranges_the_service_uses(pose_dir, tmp_path):
     entry, source = refs.lookup("forehand", "forehand", "knee_flexion")
     assert source == "calibrated" and entry["good"] == fam["knee_flexion"]["good"]
 
-
-def test_train_export_and_serve(pose_dir, tmp_path):
-    pytest.importorskip("torch")
-    pytest.importorskip("onnx")
-    from tennis_ai.ml.train import train
-
-    out = tmp_path / "models"
-    meta = train(pose_dir, out, epochs=2, seed=0)
-    assert (out / "stroke_model.onnx").exists()
-    assert set(meta["classes"]) == set(KINDS.values())
-    assert "heuristic_baseline" in meta["validation"]
-
-    clf = StrokeClassifier.load(out / "stroke_model.onnx")
-    assert clf.name.startswith("learned:")
-    prep = prepare(swing_sequence("forehand"))
-    decision = clf.classify(prep, detect_strokes(prep)[0])
-    assert decision.source == "model"
-    assert decision.type in meta["classes"]
-    assert 0.0 <= decision.skill_score <= 1.0
-    hinted = clf.classify(prep, detect_strokes(prep)[0], hint="serve")
-    assert (hinted.family, hinted.source) == ("overhead", "user")
-
-    # the expert-likeness score stays out of reports unless explicitly enabled
-    from tennis_ai.pipeline.analyzer import build_report
-    from tennis_ai.pipeline.feedback import load_references
-
-    seq, refs = swing_sequence("forehand"), load_references()
-    assert build_report(seq, "auto", "auto", clf, refs).strokes[0].skill_score is None
-    shown = build_report(seq, "auto", "auto", clf, refs, expose_skill=True).strokes[0]
-    assert shown.skill_score is not None and shown.type_source == "model"

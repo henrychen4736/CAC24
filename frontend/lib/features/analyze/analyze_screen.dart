@@ -9,15 +9,17 @@ import 'package:video_player/video_player.dart';
 
 import '../../app/theme.dart';
 import '../../core/config/settings.dart';
+import '../../core/format.dart';
 import '../../core/widgets/common.dart';
 import 'analysis_controller.dart';
 import 'filming_tips.dart';
 
-const _strokeHints = [
-  ('auto', 'Auto-detect'),
-  ('forehand', 'Forehand'),
-  ('backhand', 'Backhand'),
-  ('serve', 'Serve'),
+/// The strokes the user can say they filmed, grouped by family. The server
+/// analyzes every swing in the clip as the chosen stroke.
+const _strokeGroups = [
+  ('Forehand', ['forehand', 'forehand_slice', 'forehand_volley']),
+  ('Backhand', ['backhand_1h', 'backhand_2h', 'backhand_slice', 'backhand_volley']),
+  ('Overhead', ['serve', 'smash']),
 ];
 
 class AnalyzeScreen extends ConsumerStatefulWidget {
@@ -31,7 +33,7 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
   final _picker = ImagePicker();
   XFile? _file;
   VideoPlayerController? _preview;
-  String _hint = 'auto';
+  String? _strokeType;
   Handedness? _handedness;
   bool _picking = false;
 
@@ -81,17 +83,23 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
     });
   }
 
+  void _setHandedness(Handedness h) {
+    setState(() => _handedness = h);
+    // remember it for next time if the profile doesn't have one yet
+    if (ref.read(settingsProvider).handedness == null) {
+      ref.read(settingsProvider.notifier).setHandedness(h);
+    }
+  }
+
   void _analyze() {
     final file = _file;
-    if (file == null) return;
+    final strokeType = _strokeType;
+    final handedness = _handedness ?? ref.read(settingsProvider).handedness;
+    if (file == null || strokeType == null || handedness == null) return;
     _preview?.pause();
     context.push(
       '/processing',
-      extra: AnalysisRequest(
-        videoPath: file.path,
-        strokeHint: _hint,
-        handedness: _handedness ?? ref.read(settingsProvider).handedness,
-      ),
+      extra: AnalysisRequest(videoPath: file.path, strokeType: strokeType, handedness: handedness),
     );
   }
 
@@ -134,8 +142,8 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
               ),
               const SizedBox(height: Insets.sm),
               Text(
-                'Forehands, backhands, or serves — we find each stroke, measure your technique, '
-                'and tell you what to work on first.',
+                'Film one kind of stroke per clip: forehands, backhands, or serves. We find each '
+                'swing, measure your technique, and tell you what to work on first.',
                 style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onPrimaryContainer),
               ),
             ],
@@ -212,42 +220,60 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
             ),
           ],
         ),
-        const SectionHeader('Which stroke?'),
-        Wrap(
-          spacing: Insets.sm,
-          runSpacing: Insets.sm,
-          children: [
-            for (final (value, label) in _strokeHints)
-              ChoiceChip(
-                label: Text(label),
-                selected: _hint == value,
-                onSelected: (_) => setState(() => _hint = value),
-              ),
-          ],
-        ),
-        const SizedBox(height: Insets.xs),
+        const SectionHeader('Which stroke did you film?'),
+        for (final (group, types) in _strokeGroups) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: Insets.sm, bottom: Insets.xs),
+            child: Text(group, style: theme.textTheme.labelLarge),
+          ),
+          Wrap(
+            spacing: Insets.sm,
+            runSpacing: Insets.sm,
+            children: [
+              for (final type in types)
+                ChoiceChip(
+                  label: Text(strokeTypeLabel(type)),
+                  selected: _strokeType == type,
+                  onSelected: (_) => setState(() => _strokeType = type),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: Insets.sm),
         Text(
-          _hint == 'auto'
-              ? 'We detect every stroke in the clip automatically.'
-              : 'We only analyze ${_hint}s in this clip.',
+          _strokeType == null
+              ? 'Every swing in the clip is analyzed as this stroke, so film one kind per clip.'
+              : 'Every swing in the clip is analyzed as a ${strokeTypeLabel(_strokeType!).toLowerCase()}.',
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SectionHeader('Your hitting hand'),
         SegmentedButton<Handedness>(
           segments: const [
-            ButtonSegment(value: Handedness.auto, label: Text('Auto')),
             ButtonSegment(value: Handedness.right, label: Text('Right')),
             ButtonSegment(value: Handedness.left, label: Text('Left')),
           ],
-          selected: {handedness},
-          onSelectionChanged: (s) => setState(() => _handedness = s.first),
+          emptySelectionAllowed: handedness == null,
+          selected: {?handedness},
+          onSelectionChanged: (s) => _setHandedness(s.first),
         ),
         const SizedBox(height: Insets.xxl),
         FilledButton.icon(
-          onPressed: _analyze,
+          onPressed: _strokeType != null && handedness != null ? _analyze : null,
           icon: const Icon(Icons.auto_awesome_rounded),
           label: const Text('Analyze swing'),
         ),
+        if (_strokeType == null || handedness == null) ...[
+          const SizedBox(height: Insets.sm),
+          Text(
+            _strokeType == null && handedness == null
+                ? 'Choose the stroke and your hitting hand to continue.'
+                : _strokeType == null
+                    ? 'Choose the stroke you filmed to continue.'
+                    : 'Choose your hitting hand to continue.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
       ],
     );
   }

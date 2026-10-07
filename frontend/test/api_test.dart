@@ -144,7 +144,6 @@ void main() {
       'status': 'ok',
       'version': '2.0.0',
       'pose_model': 'mediapipe-pose-landmarker-heavy',
-      'classifier': 'heuristic',
       'reference': 'default',
       'auth_required': true,
     });

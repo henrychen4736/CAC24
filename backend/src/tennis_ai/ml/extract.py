@@ -1,8 +1,8 @@
 """Run pose estimation over a dataset once and cache the results.
 
 Pose estimation is the expensive step (seconds per clip). Everything after it
-(features, metrics, training, calibration) reads the cache, so changing feature
-or metric code never requires re-running pose.
+(metrics, calibration) reads the cache, so changing metric code never requires
+re-running pose.
 
 Output: ``<out>/<clip-id>.npz`` per clip + ``<out>/index.csv`` with labels.
 """

@@ -1,1 +1,1 @@
-"""Dataset tooling, feature extraction, training, and calibration."""
+"""Dataset tooling: pose extraction and reference-range calibration."""

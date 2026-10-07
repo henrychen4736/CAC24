@@ -27,7 +27,6 @@ class VideoMeta(BaseModel):
 
 class PlayerMeta(BaseModel):
     handedness: Literal["right", "left"]
-    handedness_source: Literal["user", "detected", "default"]
     view: Literal["front", "back", "side", "oblique", "unknown"]
     view_confidence: float
 
@@ -39,7 +38,6 @@ class Quality(BaseModel):
 
 class ModelsMeta(BaseModel):
     pose: str
-    classifier: str
     reference: str
 
 
@@ -74,15 +72,12 @@ class Stroke(BaseModel):
     index: int
     type: str
     family: Literal["forehand", "backhand", "overhead"]
-    type_confidence: float
-    type_source: Literal["heuristic", "model", "user"]
     start_s: float
     contact_s: float
     end_s: float
     key_frames: dict[str, float]
     phases: list[Phase]
     score: int | None
-    skill_score: float | None
     metrics: list[Metric]
 
 
@@ -143,6 +138,5 @@ class Health(BaseModel):
     status: Literal["ok"]
     version: str
     pose_model: str
-    classifier: str
     reference: str
     auth_required: bool

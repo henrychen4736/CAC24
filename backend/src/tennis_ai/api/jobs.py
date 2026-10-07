@@ -21,7 +21,7 @@ _STAGE_WEIGHTS = {"queued": (0.0, 0.0), "decoding": (0.0, 0.02), "pose": (0.02, 
 
 
 class AnalyzerLike(Protocol):
-    def analyze(self, path: Path, stroke_hint: str, handedness: str, progress) -> AnalysisReport: ...
+    def analyze(self, path: Path, stroke_type: str, handedness: str, progress) -> AnalysisReport: ...
 
 
 class _Record:
@@ -40,7 +40,7 @@ class JobManager:
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="analysis")
 
-    def submit(self, owner: str, path: Path, stroke_hint: str, handedness: str) -> Job:
+    def submit(self, owner: str, path: Path, stroke_type: str, handedness: str) -> Job:
         self._expire()
         job = Job(
             id=uuid.uuid4().hex,
@@ -51,7 +51,7 @@ class JobManager:
         )
         with self._lock:
             self._jobs[job.id] = _Record(job, owner, path)
-        self._pool.submit(self._run, job.id, stroke_hint, handedness)
+        self._pool.submit(self._run, job.id, stroke_type, handedness)
         return job.model_copy()
 
     def get(self, owner: str, job_id: str) -> Job | None:
@@ -87,7 +87,7 @@ class JobManager:
         self._update(job_id, status="processing", stage=stage,
                      progress=round(lo + (hi - lo) * max(0.0, min(fraction, 1.0)), 3))
 
-    def _run(self, job_id: str, stroke_hint: str, handedness: str) -> None:
+    def _run(self, job_id: str, stroke_type: str, handedness: str) -> None:
         with self._lock:
             rec = self._jobs.get(job_id)
         if rec is None:
@@ -95,7 +95,7 @@ class JobManager:
         try:
             self._progress(job_id, "decoding", 0.0)
             report = self._analyzer.analyze(
-                rec.path, stroke_hint, handedness,
+                rec.path, stroke_type, handedness,
                 lambda stage, frac: self._progress(job_id, stage, frac),
             )
             self._update(job_id, status="done", stage="done", progress=1.0, result=report)

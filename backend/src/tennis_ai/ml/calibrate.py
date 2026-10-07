@@ -26,10 +26,10 @@ from pathlib import Path
 
 import numpy as np
 
-from ..pipeline.classify import FAMILY_OF
 from ..pipeline.feedback import load_references
 from ..pipeline.metrics import METRICS, compute_metrics, estimate_view
 from ..pipeline.phases import key_frames
+from ..pipeline.strokes import FAMILY_OF
 from .dataset import prepared_clips
 
 

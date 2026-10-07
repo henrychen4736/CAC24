@@ -161,19 +161,16 @@ class VideoInfo {
 class PlayerInfo {
   const PlayerInfo({
     required this.handedness,
-    required this.handednessSource,
     required this.view,
     required this.viewConfidence,
   });
 
   final String handedness;
-  final String handednessSource;
   final String view;
   final double? viewConfidence;
 
   factory PlayerInfo.fromJson(Json json) => PlayerInfo(
         handedness: _toStr(json['handedness']) ?? 'right',
-        handednessSource: _toStr(json['handedness_source']) ?? 'detected',
         view: _toStr(json['view']) ?? 'unknown',
         viewConfidence: _toDouble(json['view_confidence']),
       );
@@ -207,15 +204,13 @@ class QualityInfo {
 }
 
 class ModelsInfo {
-  const ModelsInfo({this.pose, this.classifier, this.reference});
+  const ModelsInfo({this.pose, this.reference});
 
   final String? pose;
-  final String? classifier;
   final String? reference;
 
   factory ModelsInfo.fromJson(Json json) => ModelsInfo(
         pose: _toStr(json['pose']),
-        classifier: _toStr(json['classifier']),
         reference: _toStr(json['reference']),
       );
 }
@@ -374,38 +369,30 @@ class Stroke {
     required this.index,
     required this.type,
     required this.family,
-    required this.typeConfidence,
-    required this.typeSource,
     required this.startS,
     required this.contactS,
     required this.endS,
     required this.keyFrames,
     required this.phases,
     required this.score,
-    required this.skillScore,
     required this.metrics,
   });
 
   final int index;
   final String type;
   final StrokeFamily family;
-  final double? typeConfidence;
-  final String typeSource;
   final double startS;
   final double contactS;
   final double endS;
   final Map<String, double> keyFrames;
   final List<Phase> phases;
   final int? score;
-  final double? skillScore;
   final List<Metric> metrics;
 
   factory Stroke.fromJson(Json json) => Stroke(
         index: _toInt(json['index']) ?? 0,
         type: _toStr(json['type']) ?? 'unknown',
         family: StrokeFamily.parse(_toStr(json['family'])),
-        typeConfidence: _toDouble(json['type_confidence']),
-        typeSource: _toStr(json['type_source']) ?? 'heuristic',
         startS: _toDouble(json['start_s']) ?? 0,
         contactS: _toDouble(json['contact_s']) ?? 0,
         endS: _toDouble(json['end_s']) ?? 0,
@@ -418,7 +405,6 @@ class Stroke {
             if (p is Map) Phase.fromJson(p.cast<String, dynamic>()),
         ],
         score: _toInt(json['score']),
-        skillScore: _toDouble(json['skill_score']),
         metrics: [
           for (final m in _toList(json['metrics']))
             if (m is Map) Metric.fromJson(m.cast<String, dynamic>()),

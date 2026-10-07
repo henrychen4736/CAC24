@@ -18,10 +18,6 @@ class Settings(BaseSettings):
     models_dir: Path = BACKEND_ROOT / "models"
     pose_model: Literal["lite", "full", "heavy"] = "heavy"
     pose_num_candidates: int = 2  # people detected per frame; we then track the main player
-    # The model's expert-vs-beginner head is trained on THETIS shadow swings and
-    # rates real on-court strokes, even a coach's, as beginner-like. Keep it out
-    # of reports until it has been validated on real footage.
-    expose_skill_score: bool = False
 
     # Video limits
     max_video_seconds: float = 60.0
@@ -40,10 +36,6 @@ class Settings(BaseSettings):
     @property
     def pose_model_path(self) -> Path:
         return self.models_dir / f"pose_landmarker_{self.pose_model}.task"
-
-    @property
-    def stroke_model_path(self) -> Path:
-        return self.models_dir / "stroke_model.onnx"
 
     @property
     def calibrated_reference_path(self) -> Path:

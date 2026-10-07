@@ -26,7 +26,7 @@ void main() {
       expect(report.player.handedness, raw['player']['handedness']);
       expect(report.player.view, raw['player']['view']);
       expect(report.quality.warnings, hasLength((raw['quality']['warnings'] as List).length));
-      expect(report.models.classifier, raw['models']['classifier']);
+      expect(report.models.pose, raw['models']['pose']);
       expect(report.summary.overallScore, raw['summary']['overall_score']);
       expect(report.summary.strokeCounts, (raw['summary']['stroke_counts'] as Map).cast<String, int>());
 
@@ -38,8 +38,7 @@ void main() {
       expect(first.strokeIndices, (p0['stroke_indices'] as List).cast<int>());
     });
 
-    test('is real output: learned classifier, calibrated ranges, credited source', () {
-      expect(report.models.classifier, startsWith('learned:'));
+    test('is real output: calibrated ranges, credited source', () {
       expect(report.models.reference, 'calibrated');
       expect(raw['sample_source'], contains('CC BY-SA'));
     });

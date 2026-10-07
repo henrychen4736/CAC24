@@ -2,13 +2,16 @@ import numpy as np
 import pytest
 from synthetic import still_sequence, swing_sequence
 
-from tennis_ai.ml.features import NUM_FEATURES, T_OUT, rotate_features, stroke_features
 from tennis_ai.pipeline.analyzer import build_report
-from tennis_ai.pipeline.classify import StrokeClassifier, heuristic_decision
 from tennis_ai.pipeline.errors import AnalysisError
 from tennis_ai.pipeline.feedback import load_references, rate
 from tennis_ai.pipeline.preprocess import _fill_gaps, prepare
 from tennis_ai.pipeline.segment import detect_strokes
+from tennis_ai.pipeline.strokes import fits_family, heuristic_cues
+
+
+def _report(seq, stroke_type="forehand", handedness="right"):
+    return build_report(seq, stroke_type, handedness, load_references())
 
 
 def test_fill_gaps_only_fills_short_interior_gaps():
@@ -27,8 +30,15 @@ def test_handedness_detected_and_mirrored():
     left = prepare(swing_sequence(left_handed=True))
     assert (right.handedness, right.handedness_source) == ("right", "detected")
     assert (left.handedness, left.handedness_source) == ("left", "detected")
-    # after mirroring, a lefty forehand looks like a righty forehand
-    assert heuristic_decision(left, detect_strokes(left)[0]).family == "forehand"
+
+
+def test_lefty_is_mirrored_into_a_righty():
+    def values(seq, hand):
+        return {m.id: m.value for m in _report(seq, handedness=hand).strokes[0].metrics}
+
+    right, left = values(swing_sequence(), "right"), values(swing_sequence(left_handed=True), "left")
+    for mid in ("contact_elbow_angle", "knee_flexion", "trunk_lean"):
+        assert left[mid] == pytest.approx(right[mid], abs=2.0)
 
 
 def test_user_handedness_overrides_detection():
@@ -46,25 +56,31 @@ def test_no_strokes_when_player_stands_still():
     assert detect_strokes(prepare(still_sequence())) == []
 
 
-@pytest.mark.parametrize("kind,family", [
-    ("forehand", "forehand"), ("backhand", "backhand"), ("serve", "overhead"),
+@pytest.mark.parametrize("kind,fits,misfit", [
+    ("forehand", "forehand", "overhead"), ("backhand", "backhand", "overhead"),
+    ("serve", "overhead", "forehand"),
 ])
-def test_heuristic_family(kind, family):
+def test_plausibility_check_matches_family(kind, fits, misfit):
     prep = prepare(swing_sequence(kind))
-    decision = heuristic_decision(prep, detect_strokes(prep)[0])
-    assert decision.family == family
-    assert decision.source == "heuristic"
+    cues = heuristic_cues(prep, detect_strokes(prep)[0])
+    assert fits_family(cues, fits)
+    assert not fits_family(cues, misfit)
 
 
-def test_two_handed_backhand_detected():
-    prep = prepare(swing_sequence("backhand"))
-    assert heuristic_decision(prep, detect_strokes(prep)[0]).type == "backhand_2h"
+@pytest.mark.parametrize("stroke_type,family", [
+    ("forehand_slice", "forehand"), ("backhand_1h", "backhand"), ("backhand_volley", "backhand"),
+])
+def test_user_stroke_type_is_used_as_given(stroke_type, family):
+    kind = "forehand" if family == "forehand" else "backhand"
+    stroke = _report(swing_sequence(kind), stroke_type).strokes[0]
+    assert (stroke.type, stroke.family) == (stroke_type, family)
 
 
-def test_user_hint_wins_over_heuristic():
-    prep = prepare(swing_sequence("forehand"))
-    d = heuristic_decision(prep, detect_strokes(prep)[0], hint="serve")
-    assert (d.type, d.family, d.source) == ("serve", "overhead", "user")
+def test_rejects_auto_stroke_type_and_handedness():
+    with pytest.raises(ValueError):
+        _report(swing_sequence(), stroke_type="auto")
+    with pytest.raises(ValueError):
+        _report(swing_sequence(), handedness="auto")
 
 
 @pytest.mark.parametrize("value,expected", [
@@ -83,38 +99,9 @@ def test_rate_score_decreases_with_distance():
     assert scores == sorted(scores, reverse=True)
 
 
-def test_features_are_camera_yaw_invariant():
-    a = prepare(swing_sequence())
-    b = prepare(swing_sequence(camera_yaw=np.radians(70)))
-    fa = stroke_features(a, detect_strokes(a)[0].contact)
-    fb = stroke_features(b, detect_strokes(b)[0].contact)
-    assert fa.shape == (T_OUT, NUM_FEATURES)
-    assert np.abs(fa - fb).max() < 0.05
-
-
-def test_features_are_frame_rate_invariant():
-    """THETIS trains at ~18 fps; phones film at 30–60. The same swing must look the same."""
-    from tennis_ai.ml.features import POS, VEL
-
-    def feats(fps):
-        prep = prepare(swing_sequence(fps=fps))
-        return stroke_features(prep, detect_strokes(prep)[0].contact)
-
-    d = np.abs(feats(18.0) - feats(60.0))
-    assert d[:, POS].max() < 0.1
-    assert d[:, VEL].mean() < 0.005
-
-
-def test_rotate_features_roundtrip():
-    prep = prepare(swing_sequence())
-    x = stroke_features(prep, detect_strokes(prep)[0].contact)
-    assert np.allclose(rotate_features(rotate_features(x, 0.4), -0.4), x, atol=1e-5)
-
-
 def test_report_end_to_end_is_json_ready():
     seq = swing_sequence(contacts_s=(1.5, 4.0), duration_s=6.0)
-    report = build_report(seq, "auto", "auto", StrokeClassifier(), load_references())
-    data = report.model_dump(mode="json")
+    data = _report(seq).model_dump(mode="json")
     assert len(data["strokes"]) == 2
     assert data["summary"]["overall_score"] is not None
     assert len(data["pose_track"]["frames"]) == seq.num_frames
@@ -131,7 +118,7 @@ def test_report_end_to_end_is_json_ready():
 
 def test_report_rotation_metric_is_camera_independent():
     def rotation(seq):
-        r = build_report(seq, "auto", "auto", StrokeClassifier(), load_references())
+        r = _report(seq)
         return next(m["value"] for m in r.model_dump()["strokes"][0]["metrics"]
                     if m["id"] == "shoulder_rotation")
 
@@ -139,19 +126,17 @@ def test_report_rotation_metric_is_camera_independent():
         rotation(swing_sequence(camera_yaw=np.radians(80))), abs=3.0)
 
 
-def test_hint_drops_strokes_that_cannot_match():
-    refs, clf = load_references(), StrokeClassifier()
+def test_strokes_that_cannot_match_the_users_choice_are_dropped():
     # a forehand can't be a serve (contact far below the head) -> dropped
-    assert build_report(swing_sequence("forehand"), "serve", "auto", clf, refs).strokes == []
-    # a real serve survives the serve hint and is classified as one
-    serve = build_report(swing_sequence("serve"), "serve", "auto", clf, refs).strokes
-    assert [s.family for s in serve] == ["overhead"]
+    assert _report(swing_sequence("forehand"), "serve").strokes == []
+    # a serve can't be a forehand (a clear overhead) -> dropped
+    assert _report(swing_sequence("serve"), "forehand").strokes == []
+    serve = _report(swing_sequence("serve"), "serve").strokes
+    assert [(s.type, s.family) for s in serve] == [("serve", "overhead")]
 
 
 def test_serve_contact_snaps_to_highest_reach():
-    report = build_report(swing_sequence("serve"), "auto", "auto", StrokeClassifier(),
-                          load_references())
-    stroke = report.strokes[0]
+    stroke = _report(swing_sequence("serve"), "serve").strokes[0]
     assert stroke.family == "overhead"
     height = next(m.value for m in stroke.metrics if m.id == "contact_height")
     assert height > 0.5
@@ -161,7 +146,7 @@ def test_serve_windup_is_not_a_separate_stroke():
     seq = swing_sequence("serve", contacts_s=(2.0,), duration_s=3.5, windup=True)
     # the raw detector sees two fast motions: the windup and the hit
     assert len(detect_strokes(prepare(seq))) == 2
-    report = build_report(seq, "auto", "auto", StrokeClassifier(), load_references())
+    report = _report(seq, "serve")
     assert [(s.family, round(s.contact_s, 1)) for s in report.strokes] == [("overhead", 2.0)]
 
 
@@ -169,12 +154,12 @@ def test_no_player_is_an_error():
     seq = swing_sequence()
     seq.valid[:] = False
     with pytest.raises(AnalysisError) as e:
-        build_report(seq, "auto", "auto", StrokeClassifier(), load_references())
+        _report(seq)
     assert e.value.code == "no_player_detected"
 
 
 def test_still_video_reports_no_strokes_warning():
-    report = build_report(still_sequence(), "auto", "auto", StrokeClassifier(), load_references())
+    report = _report(still_sequence())
     assert report.strokes == []
     assert report.summary.overall_score is None
     assert "no_strokes" in [w.code for w in report.quality.warnings]

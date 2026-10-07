@@ -206,11 +206,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: Insets.sm),
                   SegmentedButton<Handedness>(
                     segments: const [
-                      ButtonSegment(value: Handedness.auto, label: Text('Auto')),
                       ButtonSegment(value: Handedness.right, label: Text('Right')),
                       ButtonSegment(value: Handedness.left, label: Text('Left')),
                     ],
-                    selected: {settings.handedness},
+                    emptySelectionAllowed: settings.handedness == null,
+                    selected: {?settings.handedness},
                     onSelectionChanged: (s) => ref.read(settingsProvider.notifier).setHandedness(s.first),
                   ),
                   const SizedBox(height: Insets.lg),
@@ -260,7 +260,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   subtitle: _health != null
                       ? Text(
                           'Connected · v${_health!.version ?? '?'}\n'
-                          'Pose: ${_health!.poseModel ?? '?'} · Strokes: ${_health!.classifier ?? '?'} · '
+                          'Pose: ${_health!.poseModel ?? '?'} · '
                           'Targets: ${_health!.reference ?? '?'}',
                         )
                       : _healthError != null

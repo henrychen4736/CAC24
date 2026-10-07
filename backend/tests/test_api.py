@@ -8,27 +8,26 @@ from synthetic import swing_sequence
 from tennis_ai.api.app import create_app
 from tennis_ai.config import Settings
 from tennis_ai.pipeline.analyzer import build_report
-from tennis_ai.pipeline.classify import StrokeClassifier
 from tennis_ai.pipeline.errors import AnalysisError
 from tennis_ai.pipeline.feedback import load_references
+
+CHOICES = {"stroke_type": "forehand", "handedness": "right"}
 
 
 class FakeAnalyzer:
     pose = SimpleNamespace(name="fake-pose")
-    classifier = StrokeClassifier()
     references = load_references()
 
     def __init__(self):
         self.seen = []
 
-    def analyze(self, path, stroke_hint, handedness, progress):
-        self.seen.append((path.read_bytes(), stroke_hint, handedness))
+    def analyze(self, path, stroke_type, handedness, progress):
+        self.seen.append((path.read_bytes(), stroke_type, handedness))
         assert path.exists()
         progress("pose", 0.5)
         if path.read_bytes() == b"no-player":
             raise AnalysisError("no_player_detected", "No player.")
-        return build_report(swing_sequence(), stroke_hint, handedness, self.classifier,
-                            self.references)
+        return build_report(swing_sequence(), stroke_type, handedness, self.references)
 
 
 @pytest.fixture
@@ -54,7 +53,6 @@ def _wait(client, job_id, timeout=10.0):
 def test_health(client):
     body = client.get("/v1/health").json()
     assert body["status"] == "ok"
-    assert body["classifier"] == "heuristic"
     assert body["reference"] == "default"
     assert body["auth_required"] is False
 
@@ -63,42 +61,52 @@ def test_upload_poll_done(client):
     r = client.post(
         "/v1/analyses",
         files={"file": ("swing.mp4", b"fake-video", "video/mp4")},
-        data={"stroke_hint": "forehand", "handedness": "right"},
+        data={"stroke_type": "forehand_slice", "handedness": "right"},
     )
     assert r.status_code == 202
     job = _wait(client, r.json()["id"])
     assert job["status"] == "done"
     assert job["progress"] == 1.0
-    assert job["result"]["strokes"][0]["family"] == "forehand"
-    assert client.analyzer.seen[0][1:] == ("forehand", "right")
+    stroke = job["result"]["strokes"][0]
+    assert (stroke["type"], stroke["family"]) == ("forehand_slice", "forehand")
+    assert client.analyzer.seen[0][1:] == ("forehand_slice", "right")
     assert list(client.upload_dir.iterdir()) == []  # upload deleted after processing
 
 
 def test_analysis_error_becomes_failed_job(client):
-    r = client.post("/v1/analyses", files={"file": ("x.mov", b"no-player", "video/quicktime")})
+    r = client.post("/v1/analyses", files={"file": ("x.mov", b"no-player", "video/quicktime")},
+                    data=CHOICES)
     job = _wait(client, r.json()["id"])
     assert job["status"] == "failed"
     assert job["error"]["code"] == "no_player_detected"
 
 
 def test_rejects_non_video(client):
-    r = client.post("/v1/analyses", files={"file": ("notes.txt", b"hi", "text/plain")})
+    r = client.post("/v1/analyses", files={"file": ("notes.txt", b"hi", "text/plain")}, data=CHOICES)
     assert r.status_code == 415
     assert r.json()["error"]["code"] == "unsupported_format"
 
 
 def test_rejects_oversized_upload(client):
-    r = client.post("/v1/analyses", files={"file": ("big.mp4", b"0" * (1024 * 1024 + 1), "video/mp4")})
+    r = client.post("/v1/analyses", files={"file": ("big.mp4", b"0" * (1024 * 1024 + 1), "video/mp4")},
+                    data=CHOICES)
     assert r.status_code == 413
     assert r.json()["error"]["code"] == "video_too_large"
     assert list(client.upload_dir.iterdir()) == []
 
 
-def test_rejects_bad_hint(client):
-    r = client.post("/v1/analyses", files={"file": ("a.mp4", b"x", "video/mp4")},
-                    data={"stroke_hint": "lob"})
+@pytest.mark.parametrize("data", [
+    {"stroke_type": "lob", "handedness": "right"},
+    {"stroke_type": "forehand", "handedness": "auto"},
+    {"stroke_type": "auto", "handedness": "right"},
+    {"handedness": "right"},   # stroke type is required
+    {"stroke_type": "serve"},  # handedness is required
+])
+def test_rejects_missing_or_invalid_choices(client, data):
+    r = client.post("/v1/analyses", files={"file": ("a.mp4", b"x", "video/mp4")}, data=data)
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "invalid_request"
+    assert client.analyzer.seen == []
 
 
 def test_unknown_job_is_404(client):
@@ -108,7 +116,8 @@ def test_unknown_job_is_404(client):
 
 
 def test_delete_job(client):
-    job_id = client.post("/v1/analyses", files={"file": ("a.mp4", b"x", "video/mp4")}).json()["id"]
+    job_id = client.post("/v1/analyses", files={"file": ("a.mp4", b"x", "video/mp4")},
+                         data=CHOICES).json()["id"]
     _wait(client, job_id)
     assert client.delete(f"/v1/analyses/{job_id}").status_code == 204
     assert client.get(f"/v1/analyses/{job_id}").status_code == 404

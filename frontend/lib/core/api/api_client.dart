@@ -14,7 +14,6 @@ class HealthInfo {
     required this.status,
     this.version,
     this.poseModel,
-    this.classifier,
     this.reference,
     this.authRequired = false,
   });
@@ -22,7 +21,6 @@ class HealthInfo {
   final String status;
   final String? version;
   final String? poseModel;
-  final String? classifier;
   final String? reference;
   final bool authRequired;
 
@@ -32,7 +30,6 @@ class HealthInfo {
         status: json['status'] as String? ?? 'unknown',
         version: json['version'] as String?,
         poseModel: json['pose_model'] as String?,
-        classifier: json['classifier'] as String?,
         reference: json['reference'] as String?,
         authRequired: json['auth_required'] as bool? ?? false,
       );
@@ -136,12 +133,13 @@ class TennisApi {
         return HealthInfo.fromJson(res.data ?? const {});
       });
 
-  /// Uploads a video and starts an analysis job. [onUploadProgress] receives
-  /// values in 0..1.
+  /// Uploads a video and starts an analysis job. [strokeType] is the stroke the
+  /// user filmed (`forehand`, `backhand_2h`, `serve`, …) and [handedness] is
+  /// `right` or `left`. [onUploadProgress] receives values in 0..1.
   Future<AnalysisJob> createAnalysis({
     required String filePath,
-    String strokeHint = 'auto',
-    String handedness = 'auto',
+    required String strokeType,
+    required String handedness,
     void Function(double progress)? onUploadProgress,
     CancelToken? cancelToken,
   }) =>
@@ -153,7 +151,7 @@ class TennisApi {
             filename: fileName,
             contentType: DioMediaType.parse(videoMimeType(fileName)),
           ),
-          'stroke_hint': strokeHint,
+          'stroke_type': strokeType,
           'handedness': handedness,
         });
         final res = await _dio.post<Map<String, dynamic>>(

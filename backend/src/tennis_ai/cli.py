@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from .config import get_settings
+from .pipeline.strokes import STROKE_TYPES
 
 
 def _serve(a) -> None:
@@ -21,7 +22,7 @@ def _analyze(a) -> None:
 
     analyzer = Analyzer(get_settings())
     report = analyzer.analyze(
-        Path(a.video), a.hint, a.handedness,
+        Path(a.video), a.stroke, a.handedness,
         progress=lambda stage, frac: print(f"\r{stage:9s} {frac:5.0%}", end="", file=sys.stderr),
     )
     print(file=sys.stderr)
@@ -30,13 +31,12 @@ def _analyze(a) -> None:
         Path(a.out).write_text(json.dumps(data, indent=2))
     s = report.summary
     print(f"{s.headline}  overall score: {s.overall_score}")
-    print(f"player: {report.player.handedness} ({report.player.handedness_source}), "
+    print(f"player: {report.player.handedness}, "
           f"view: {report.player.view} ({report.player.view_confidence})")
     for w in report.quality.warnings:
         print(f"  ! {w.message}")
     for st in report.strokes:
-        print(f"\n#{st.index} {st.type} ({st.type_source}, {st.type_confidence:.2f}) "
-              f"contact {st.contact_s:.2f}s  score {st.score}")
+        print(f"\n#{st.index} {st.type}  contact {st.contact_s:.2f}s  score {st.score}")
         for m in st.metrics:
             ref = f"good {m.reference.good}" if m.reference else ""
             print(f"   {m.label:32s} {m.value!s:>8} {m.unit:8s} {m.rating:10s} {m.confidence:6s} {ref}")
@@ -73,12 +73,6 @@ def _extract(a) -> None:
     extract(specs, Path(a.out), get_settings().models_dir, a.pose_model, a.workers)
 
 
-def _train(a) -> None:
-    from .ml.train import train
-
-    train(Path(a.poses), Path(a.out), a.epochs, a.seed, final_fit=not a.no_final)
-
-
 def _calibrate(a) -> None:
     from .ml.calibrate import calibrate
 
@@ -101,8 +95,8 @@ def main(argv: list[str] | None = None) -> None:
 
     s = sub.add_parser("analyze", help="analyze one video and print the report")
     s.add_argument("video")
-    s.add_argument("--hint", default="auto", choices=["auto", "forehand", "backhand", "serve"])
-    s.add_argument("--handedness", default="auto", choices=["auto", "right", "left"])
+    s.add_argument("--stroke", required=True, choices=STROKE_TYPES, help="the stroke filmed")
+    s.add_argument("--handedness", required=True, choices=["right", "left"])
     s.add_argument("--out", help="write the full JSON report here")
     s.set_defaults(fn=_analyze)
 
@@ -126,14 +120,6 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--limit", type=int)
     s.add_argument("--pose-model", default="heavy", choices=["lite", "full", "heavy"])
     s.set_defaults(fn=_extract)
-
-    s = sub.add_parser("train", help="train the stroke model and export ONNX")
-    s.add_argument("--poses", default="data/poses")
-    s.add_argument("--out", default="models")
-    s.add_argument("--epochs", type=int, default=80)
-    s.add_argument("--seed", type=int, default=0)
-    s.add_argument("--no-final", action="store_true", help="skip the refit on all data")
-    s.set_defaults(fn=_train)
 
     s = sub.add_parser("calibrate", help="build reference ranges from expert clips")
     s.add_argument("--poses", default="data/poses")

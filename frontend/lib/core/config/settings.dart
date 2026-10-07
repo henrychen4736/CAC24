@@ -17,7 +17,6 @@ String defaultApiBaseUrl() {
 }
 
 enum Handedness {
-  auto('auto', 'Auto-detect'),
   right('right', 'Right-handed'),
   left('left', 'Left-handed');
 
@@ -25,21 +24,27 @@ enum Handedness {
   final String wire;
   final String label;
 
-  static Handedness parse(String? v) =>
-      Handedness.values.firstWhere((h) => h.wire == v, orElse: () => Handedness.auto);
+  /// Null when unset (including the old `auto` setting): the user has to pick.
+  static Handedness? parse(String? v) {
+    for (final h in Handedness.values) {
+      if (h.wire == v) return h;
+    }
+    return null;
+  }
 }
 
 @immutable
 class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
-    this.handedness = Handedness.auto,
+    this.handedness,
     this.apiBaseUrlOverride,
     this.onboardingDone = false,
   });
 
   final ThemeMode themeMode;
-  final Handedness handedness;
+  /// Null until the user has said which hand they hit with.
+  final Handedness? handedness;
   final String? apiBaseUrlOverride;
   final bool onboardingDone;
 

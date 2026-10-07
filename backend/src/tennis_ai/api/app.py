@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .. import __version__
 from ..config import Settings, get_settings
 from ..pipeline.errors import UNSUPPORTED_FORMAT, VIDEO_TOO_LARGE
+from ..pipeline.strokes import STROKE_TYPES
 from ..schemas import Health, Job
 from .auth import make_auth_dependency
 from .errors import api_error, install_error_handlers
@@ -23,6 +24,7 @@ log = logging.getLogger(__name__)
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".avi", ".webm", ".mkv", ".ogv", ".3gp"}
 CHUNK = 1 << 20
+StrokeType = Literal[STROKE_TYPES]  # type: ignore[valid-type]
 
 
 def create_app(settings: Settings | None = None, analyzer=None) -> FastAPI:
@@ -64,7 +66,6 @@ def create_app(settings: Settings | None = None, analyzer=None) -> FastAPI:
             status="ok",
             version=__version__,
             pose_model=a.pose.name,
-            classifier=a.classifier.name,
             reference=a.references.source,
             auth_required=settings.auth_required,
         )
@@ -75,8 +76,8 @@ def create_app(settings: Settings | None = None, analyzer=None) -> FastAPI:
     async def create_analysis(
         file: Annotated[UploadFile, File()],
         user: User,
-        stroke_hint: Annotated[Literal["auto", "forehand", "backhand", "serve"], Form()] = "auto",
-        handedness: Annotated[Literal["auto", "right", "left"], Form()] = "auto",
+        stroke_type: Annotated[StrokeType, Form()],
+        handedness: Annotated[Literal["right", "left"], Form()],
     ) -> Job:
         suffix = Path(file.filename or "").suffix.lower()
         is_video = (file.content_type or "").startswith("video/")
@@ -102,7 +103,7 @@ def create_app(settings: Settings | None = None, analyzer=None) -> FastAPI:
                 tmp.close()
                 path.unlink(missing_ok=True)
                 raise
-        return state["jobs"].submit(user, path, stroke_hint, handedness)
+        return state["jobs"].submit(user, path, stroke_type, handedness)
 
     @app.get("/v1/analyses/{job_id}", response_model=Job)
     def get_analysis(job_id: str, user: User) -> Job:

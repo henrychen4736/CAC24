@@ -325,7 +325,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         Text(
           [
             if (report.models.pose != null) 'Pose: ${report.models.pose}',
-            if (report.models.classifier != null) 'Stroke type: ${report.models.classifier}',
             if (report.models.reference != null)
               'Targets: ${report.models.reference == 'default' ? 'coaching defaults' : report.models.reference}',
           ].join(' · '),
@@ -337,14 +336,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
 
   List<Widget> _strokeDetails(BuildContext context, Stroke stroke) {
     final theme = Theme.of(context);
-    final confidence = stroke.typeConfidence;
-    final subtitle = [
-      'Contact at ${formatTimestamp(stroke.contactS)}',
-      if (stroke.typeSource == 'user')
-        'type set by you'
-      else if (confidence != null)
-        '${(confidence * 100).round()}% sure of type',
-    ].join(' · ');
+    final subtitle = 'Contact at ${formatTimestamp(stroke.contactS)}';
 
     return [
       const SizedBox(height: Insets.md),
@@ -372,24 +364,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                   ScoreRing(score: stroke.score, size: 56, strokeWidth: 6),
                 ],
               ),
-              if (stroke.skillScore case final skill?) ...[
-                const SizedBox(height: Insets.md),
-                Row(
-                  children: [
-                    Text('Expert-likeness', style: theme.textTheme.labelMedium),
-                    const SizedBox(width: Insets.md),
-                    Expanded(
-                      child: LinearProgressIndicator(
-                        value: skill.clamp(0.0, 1.0),
-                        minHeight: 6,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    const SizedBox(width: Insets.sm),
-                    Text('${(skill * 100).round()}%', style: theme.textTheme.labelMedium),
-                  ],
-                ),
-              ],
               const SizedBox(height: Insets.sm),
               Text(
                 'Tap a metric to jump to that moment and highlight the joints involved.',

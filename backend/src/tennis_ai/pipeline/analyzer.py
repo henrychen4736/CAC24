@@ -21,7 +21,6 @@ from ..schemas import (
     VideoMeta,
 )
 from . import video
-from .classify import StrokeClassifier, fits_hint, heuristic_cues, is_overhead
 from .errors import NO_PLAYER_DETECTED, AnalysisError
 from .feedback import ReferenceSet, build_metrics, load_references, stroke_score, summarize
 from .metrics import METRICS, compute_metrics, estimate_view, metric_frame
@@ -30,6 +29,7 @@ from .pose import MediaPipePoseEstimator
 from .preprocess import Prepared, prepare
 from .segment import detect_strokes
 from .skeleton import EDGES, JOINTS, J, PoseSequence
+from .strokes import FAMILY_OF, fits_family, heuristic_cues, is_overhead
 
 ProgressFn = Callable[[str, float], None]
 
@@ -40,16 +40,17 @@ class Analyzer:
         self.pose = MediaPipePoseEstimator(
             settings.pose_model_path, settings.pose_model, settings.pose_num_candidates
         )
-        self.classifier = StrokeClassifier.load(settings.stroke_model_path)
         self.references = load_references(settings.calibrated_reference_path)
 
     def analyze(
         self,
         path: Path,
-        stroke_hint: str = "auto",
-        handedness: str = "auto",
+        stroke_type: str,
+        handedness: str,
         progress: ProgressFn | None = None,
     ) -> AnalysisReport:
+        """``stroke_type`` (one of ``STROKE_TYPES``) and ``handedness`` (right / left) come
+        from the user: every swing found in the clip is analyzed as that stroke."""
         report = progress or (lambda stage, frac: None)
         s = self.settings
         report("decoding", 0.0)
@@ -64,10 +65,7 @@ class Analyzer:
             on_progress=lambda i: report("pose", min(i / max(expected, 1), 0.99)),
         )
         report("analysis", 0.0)
-        return build_report(
-            seq, stroke_hint, handedness, self.classifier, self.references,
-            expose_skill=s.expose_skill_score,
-        )
+        return build_report(seq, stroke_type, handedness, self.references)
 
 
 def _visibility(prep: Prepared, kf: dict[str, int]) -> dict[str, float]:
@@ -103,13 +101,6 @@ def _quality(seq: PoseSequence, prep: Prepared, n_strokes: int) -> Quality:
             "half the frame height.",
         ))
         score -= 0.2
-    if n_strokes and prep.handedness_source == "default":
-        warnings.append(QualityWarning(
-            code="handedness_uncertain",
-            message="We couldn't tell which hand you hit with, so we assumed right-handed. "
-            "Set your handedness in your profile.",
-        ))
-        score -= 0.1
     if n_strokes == 0:
         warnings.append(QualityWarning(
             code="no_strokes",
@@ -131,13 +122,15 @@ def pose_track(seq: PoseSequence) -> PoseTrack:
 
 def build_report(
     seq: PoseSequence,
-    stroke_hint: str,
+    stroke_type: str,
     handedness: str,
-    classifier: StrokeClassifier,
     references: ReferenceSet,
-    expose_skill: bool = False,
 ) -> AnalysisReport:
-    """``expose_skill``: include the model's expert-likeness score (see Settings)."""
+    if stroke_type not in FAMILY_OF:
+        raise ValueError(f"unknown stroke type {stroke_type!r}")
+    if handedness not in ("right", "left"):
+        raise ValueError(f"handedness must be 'right' or 'left', got {handedness!r}")
+    family = FAMILY_OF[stroke_type]
     if seq.valid.sum() < max(5, int(0.1 * seq.num_frames)):
         raise AnalysisError(
             NO_PLAYER_DETECTED,
@@ -149,33 +142,27 @@ def build_report(
     t = lambda i: round(i / fps, 3)  # noqa: E731
 
     def plausible(w) -> bool:
-        return fits_hint(heuristic_cues(prep, w), stroke_hint)
+        return fits_family(heuristic_cues(prep, w), family)
 
     def overhead(w) -> bool:
         return is_overhead(heuristic_cues(prep, w))
 
     strokes: list[Stroke] = []
     for w in detect_strokes(prep, accept=plausible, overhead=overhead):
-        decision = classifier.classify(prep, w, stroke_hint)
-        kf = key_frames(prep, w, decision.family)
-        values = compute_metrics(prep, kf, decision.family)
-        metrics = build_metrics(
-            values, decision.type, decision.family, view, _visibility(prep, kf), references
-        )
+        kf = key_frames(prep, w, family)
+        values = compute_metrics(prep, kf, family)
+        metrics = build_metrics(values, stroke_type, family, view, _visibility(prep, kf), references)
         strokes.append(
             Stroke(
                 index=len(strokes),
-                type=decision.type,
-                family=decision.family,
-                type_confidence=decision.confidence,
-                type_source=decision.source,
+                type=stroke_type,
+                family=family,
                 start_s=t(kf["start"]),
                 contact_s=t(kf["contact"]),
                 end_s=t(kf["end"]),
                 key_frames={k: t(v) for k, v in kf.items() if k not in ("start", "end")},
-                phases=[Phase(**p) for p in phases(kf, decision.family, fps)],
+                phases=[Phase(**p) for p in phases(kf, family, fps)],
                 score=stroke_score(metrics),
-                skill_score=decision.skill_score if expose_skill else None,
                 metrics=metrics,
             )
         )
@@ -191,12 +178,11 @@ def build_report(
         ),
         player=PlayerMeta(
             handedness=prep.handedness,
-            handedness_source=prep.handedness_source,
             view=view,
             view_confidence=view_conf,
         ),
         quality=_quality(seq, prep, len(strokes)),
-        models=ModelsMeta(pose=seq.model, classifier=classifier.name, reference=references.source),
+        models=ModelsMeta(pose=seq.model, reference=references.source),
         summary=summarize(strokes),
         strokes=strokes,
         pose_track=pose_track(seq),

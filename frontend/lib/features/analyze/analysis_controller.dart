@@ -12,14 +12,14 @@ import '../results/result_args.dart';
 class AnalysisRequest {
   const AnalysisRequest({
     required this.videoPath,
-    required this.strokeHint,
+    required this.strokeType,
     required this.handedness,
   });
 
   final String videoPath;
 
-  /// `auto` | `forehand` | `backhand` | `serve`.
-  final String strokeHint;
+  /// The stroke the user filmed: `forehand`, `forehand_slice`, `backhand_1h`, `serve`, …
+  final String strokeType;
   final Handedness handedness;
 }
 
@@ -87,7 +87,7 @@ class AnalysisFlowController extends Notifier<AnalysisFlowState> {
     try {
       var job = await api.createAnalysis(
         filePath: request.videoPath,
-        strokeHint: request.strokeHint,
+        strokeType: request.strokeType,
         handedness: request.handedness.wire,
         cancelToken: cancel,
         onUploadProgress: (p) {
